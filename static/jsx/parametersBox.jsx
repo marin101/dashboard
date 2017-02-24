@@ -1,14 +1,15 @@
 import React from "react"
 import ReactDOM from "react-dom"
 
-import {Popup, Form, Menu, Input, Modal, Checkbox} from "semantic-ui-react"
+import {Image, Icon, Button, Popup, Form, Menu, Input, Modal, Checkbox} from "semantic-ui-react"
 
 function TextParam(props) {
 	return (
 		<Form.Field>
 			<Popup content={props.parameter.description} on="hover" trigger={<div>
 					<label> {props.parameter.name} </label>
-					<Input focus fluid onChange={props.handleChange}/>
+					<Input focus fluid value={props.parameter.value}
+						onChange={props.handleChange}/>
 				</div>
 			}/>
 		</Form.Field>
@@ -20,7 +21,7 @@ function CheckboxParam(props) {
 		<Form.Field>
 			<Popup on="hover" content={props.parameter.description} trigger={
 				<Checkbox label={props.parameter.name} onChange={props.handleChange}
-					checked={props.isChecked}/>
+					checked={props.parameter.value}/>
 			}/>
 		</Form.Field>
 	);
@@ -44,6 +45,7 @@ class ParametersBox extends React.Component {
 		this.handleMenuClose = this.handleMenuClose.bind(this);
 	}
 
+	/* Fetch R script parameters */
 	componentDidMount() {
 		const getOptionsRequest = new XMLHttpRequest();
 
@@ -51,10 +53,16 @@ class ParametersBox extends React.Component {
 			try {
 				let parameters = JSON.parse(request.target.response);
 				this.setState({parameters: parameters});
+
+				for (let type in parameters) {
+					parameters[type] = parameters[type].map(param => {
+						param.value = param.defaultValue;
+						return param;
+					});
+				}
 			} catch(error) {
 				console.log(error);
 			}
-
 		});
 
 		getOptionsRequest.addEventListener("error", error => {
@@ -65,7 +73,7 @@ class ParametersBox extends React.Component {
 		getOptionsRequest.send();
 	}
 
-	send_parameters() {
+	runRScript() {
 		const sendOptionsRequest = new XMLHttpRequest();
 
 		sendOptionsRequest.addEventListener("load", request => {
@@ -87,7 +95,7 @@ class ParametersBox extends React.Component {
 				return <CheckboxParam parameter={parameter} handleChange={() => null}/>;
 			case "text":
 				return <TextParam parameter={parameter} handleChange={() => null}/>;
-			case "number":
+			case "dragDrop":
 				return null;
 			default:
 				return <TextParam parameter={parameter} handleChange={() => null}/>;
@@ -119,6 +127,10 @@ class ParametersBox extends React.Component {
 		this.setState({prepMenuActive: false});
 	}
 
+	readFile(event) {
+
+	}
+
 	render() {
 		return (
 			<div>
@@ -133,42 +145,69 @@ class ParametersBox extends React.Component {
 						</Menu>
 
 						<Menu vertical fluid>
-							<Menu.Item name="Read" onClick={this.handleReadClick}>
-							</Menu.Item>
+							<Menu.Item>
+								<Input type="file" onChange={this.readFile}/>
+							</Menu.Item >
 
-							<Menu.Item name="Optimize" onClick={this.handleOptimClick}>
-							</Menu.Item>
-
-							<Menu.Item name="Prepare" onClick={this.handlePrepClick}>
-							</Menu.Item>
-
-							<Menu.Item name="Export CSV">
-							</Menu.Item>
+							<Menu.Item name="Read" onClick={this.handleReadClick}/>
+							<Menu.Item name="Optimize" onClick={this.handleOptimClick}/>
+							<Menu.Item name="Prepare" onClick={this.handlePrepClick}/>
 						</Menu>
+
+						<Button primary> Export as CSV </Button>
 					</Form>
 
-					<Modal size="fullscreen" open={this.state.readMenuActive} onClose={this.handleMenuClose}>
+					<Modal size="fullscreen" dimmer={false} open={this.state.readMenuActive} onClose={this.handleMenuClose}>
 						<Modal.Header> Read parameters </Modal.Header>
 
-						<Modal.Content>
-							{this.parametersMenu(this.state.parameters.Read)}
+						<Modal.Content image>
+							<Modal.Description>
+								{this.parametersMenu(this.state.parameters.Read)}
+							</Modal.Description>
 						</Modal.Content>
+
+						<Modal.Actions>
+							<Button basic color='red' inverted>
+								<Icon name='remove'/> Cancel
+							</Button>
+							<Button color='green' inverted>
+								<Icon name='checkmark'/> Run
+							</Button>
+						</Modal.Actions>
 					</Modal>
 
 					<Modal size="fullscreen" open={this.state.optimMenuActive} onClose={this.handleMenuClose}>
 						<Modal.Header> Optimize parameters </Modal.Header>
 
 						<Modal.Content>
-							Optim
+							{this.parametersMenu(this.state.parameters.Optim)}
 						</Modal.Content>
+
+						<Modal.Actions>
+							<Button basic color='red' inverted>
+								<Icon name='remove' /> Cancel
+							</Button>
+							<Button color='green' inverted>
+								<Icon name='checkmark' /> Run
+							</Button>
+						</Modal.Actions>
 					</Modal>
 
 					<Modal size="fullscreen" open={this.state.prepMenuActive} onClose={this.handleMenuClose}>
 						<Modal.Header> Prepare parameters </Modal.Header>
 
 						<Modal.Content>
-							Prep
+							{this.parametersMenu(this.state.parameters.Prep)}
 						</Modal.Content>
+
+						<Modal.Actions>
+							<Button basic color='red' inverted>
+								<Icon name='remove' /> Cancel
+							</Button>
+							<Button color='green' inverted>
+								<Icon name='checkmark' /> Run
+							</Button>
+						</Modal.Actions>
 					</Modal>
 				</div>
 			}
