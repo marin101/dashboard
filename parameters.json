@@ -1,0 +1,358 @@
+{
+   "Read": [
+      {
+         "id": "file1",
+		 "type": "file",
+         "name": "Input data",
+         "description": "Upload input data in CSV format",
+
+         "defaultValue": null,
+         "returnValue": null,
+
+         "choice": null,
+         "required": true
+      },
+      {
+         "id": "depvar",
+		 "type": "dragDrop",
+         "name": "Select target variable",
+         "description": "What you want to model",
+
+         "defaultValue": null,
+         "returnValue": null,
+
+         "choice": null,
+         "required": true
+      },
+      {
+         "id": "subject",
+		 "type": "dragDrop",
+         "name": "Select subject",
+         "description": "Level at which impacts will be reported",
+
+         "defaultValue": null,
+         "returnValue": null,
+
+         "choice": null,
+         "required": true
+      },
+      {
+         "id": "period",
+		 "type": "dragDrop",
+         "name": "Select period",
+         "description": "Column which represents time period",
+
+         "defaultValue": null,
+         "returnValue": null,
+
+         "choice": null,
+         "required": true
+      },
+      {
+         "id": "pstart",
+		 "type": "dragDrop",
+         "name": "Model start period",
+         "description": "Periods prior to this will not be included in the model",
+
+         "defaultValue": "1970-01-01",
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "pend",
+		 "type": "dragDrop",
+         "name": "Model end period",
+         "description": "Periods post this will not be included in the model",
+
+         "defaultValue": "9999-01-01",
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "datefmt",
+		 "type": "radio",
+         "name": "Date format",
+         "description": "Format in which dates are stored in the input file",
+
+         "defaultValue": "%Y-%m-%d",
+         "returnValue": ["%Y-%m-%d","%d-%m-%Y","%m-%d-%Y"],
+
+         "choice": ["YYYY-MM-DD","DD-MM-YYYY","MM-DD-YYYY"],
+         "required": false
+      },
+      {
+         "id": "lst_dim",
+		 "type": "dragDrop",
+         "name": "Select descriptor columns",
+         "description": "These will NOT be used for modeling",
+
+         "defaultValue": "NA",
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "impute",
+		 "type": "checkbox",
+         "name": "Impute missing values?",
+         "description": "Missing values will be replaced with zero",
+
+         "defaultValue": true,
+         "returnValue": [1, 0],
+
+         "choice": [true, false],
+         "required": false
+      },
+      {
+         "id": "outlier",
+		 "type": "checkbox",
+         "name": "Treat outliers?",
+         "description": "Outliers will be replaced with median",
+
+         "defaultValue": 0,
+         "returnValue": [1, 0],
+
+         "choice": [true, false],
+         "required": false
+      },
+      {
+         "id": "static",
+		 "type": "slider",
+         "name": "Set the static",
+         "description": "Subjects will be dropped if they have data for less than static % of periods",
+
+         "defaultValue": 0,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      }
+   ],
+   "Prep": [
+      {
+         "id": "use_decay",
+		 "type": "checkbox",
+         "name": "Apply adstock decay?",
+         "description": "Apply adstock decay?",
+
+         "defaultValue": 1,
+         "returnValue": [1, 0],
+
+         "choice": [true, false],
+         "required": false
+      },
+      {
+         "id": "min_decay",
+		 "type": "slider",
+         "name": "Minimum decay rate",
+         "description": "All decay rates starting from this value will be modeled",
+
+         "defaultValue": 0.5,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "max_decay",
+		 "type": "slider",
+         "name": "Maximum decay rate",
+         "description": "All decay rates upto this value will be modeled",
+
+         "defaultValue": 0.8,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "use_log",
+		 "type": "checkbox",
+         "name": "Apply log transformation?",
+         "description": "Can be applied to target variables only or both target variables and factors",
+
+         "defaultValue": 1,
+         "returnValue": [0, 1, 2],
+
+         "choice": ["None","Semi-log","Log-log"],
+         "required": false
+      },
+      {
+         "id": "use_mc",
+		 "type": "checkbox",
+         "name": "Apply mean centering?",
+         "description": "Apply mean centering?",
+
+         "defaultValue": 1,
+         "returnValue": [1, 0],
+
+         "choice": [true, false],
+         "required": false
+      }
+   ],
+   "Model": [
+      {
+         "id": "use_seas",
+		 "type": "checkbox",
+         "name": "Model seasonality?",
+         "description": "Options for modeling seasonality",
+
+         "defaultValue": 1,
+         "returnValue": [0, 1, 2],
+
+         "choice": ["None","Dummy Month Factors","Numeric Sales Factors"],
+         "required": false
+      },
+      {
+         "id": "lst_seas",
+		 "type": "dragDrop",
+         "name": "Select periods to control for",
+         "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
+
+         "defaultValue": "NA",
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "lst_rand",
+		 "type": "dragDrop",
+         "name": "Variables to randomize",
+         "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
+
+         "defaultValue": "NA",
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "covstr",
+		 "type": "radio",
+         "name": "Select covariance structure",
+         "description": "Options to model random effect interactions",
+
+         "defaultValue": "0",
+         "returnValue": ["0","1","2"],
+
+         "choice": ["Uncorrelated random slopes","Correlated random slopes","Try both options"],
+         "required": false
+      },
+      {
+         "id": "use_stat",
+		 "type": "radio",
+         "name": "Select fit statistic to use",
+         "description": "Best model will be selected based on this statistic. These measures should be interpreted in a relative sense only.",
+
+         "defaultValue": 2,
+         "returnValue": [1, 2],
+
+         "choice": ["Use R-squared","Use AIC (Akaike Information Criterion)"],
+         "required": false
+      },
+      {
+         "id": "use_prior",
+		 "type": "radio",
+         "name": "Select prior values to use",
+         "description": "Interpret priors as % contribution or ROI?",
+
+         "defaultValue": 0,
+         "returnValue": ["1","2"],
+
+         "choice": ["Use prior channel contribution","Use prior channel ROI"],
+         "required": false
+      },
+      {
+         "id": "lst_prior",
+		 "type": "slider",
+         "name": "List of prior values",
+         "description": "List of prior values",
+
+         "defaultValue": "NA",
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "mixnmatch",
+		 "type": "radio",
+         "name": "Report channel impacts from different models?",
+         "description": "Uncheck to ensure all impacts reported from a single model",
+
+         "defaultValue": 0,
+         "returnValue": [1, 0],
+
+         "choice": [true, false],
+         "required": false
+      },
+      {
+         "id": "lst_cost",
+		 "type": "text",
+         "name": "Enter per unit channel costs",
+         "description": "Required for calculating ROI",
+
+         "defaultValue": null,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "margin",
+		 "type": "text",
+         "name": "Enter gross margin",
+         "description": "Required for calculating ROI",
+
+         "defaultValue": 1,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      }
+   ],
+   "Optim": [
+      {
+         "id": "optim_goal",
+		 "type": "radio",
+         "name": "Select optimization goal",
+         "description": "Defines what to optimize",
+
+         "defaultValue": 1,
+         "returnValue": [1, 2],
+
+         "choice": ["Sales Max with Budget Constraint","Cost Min with Sales Target Constraint"],
+         "required": false
+      },
+      {
+         "id": "budget_factor",
+		 "type": "slider",
+         "name": "Total channel cost as a ratio of current",
+         "description": "Expands the Budget Constraint to go beyond current budget",
+
+         "defaultValue": 1,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      },
+      {
+         "id": "sales_factor",
+		 "type": "slider",
+         "name": "Target sales as a ratio of current",
+         "description": "Expands the Sales Target Constraint to go beyond current sales",
+
+         "defaultValue": 1,
+         "returnValue": null,
+
+         "choice": null,
+         "required": false
+      }
+   ]
+}
