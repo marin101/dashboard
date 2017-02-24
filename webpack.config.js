@@ -19,7 +19,9 @@ module.exports = {
     vendor: [
 		'react',
 		'react-dom',
-		'react-grid-layout'
+		'react-split-pane',
+
+		'semantic-ui-react'
     ]
   },
 
