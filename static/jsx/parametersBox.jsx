@@ -3,28 +3,55 @@ import ReactDOM from "react-dom"
 
 import {Image, Icon, Button, Popup, Form, Menu, Input, Modal, Checkbox} from "semantic-ui-react"
 
-function TextParam(props) {
-	return (
-		<Form.Field>
-			<Popup content={props.parameter.description} on="hover" trigger={<div>
-					<label> {props.parameter.name} </label>
-					<Input focus fluid value={props.parameter.value}
-						onChange={props.handleChange}/>
-				</div>
-			}/>
-		</Form.Field>
-	);
+class TextParam extends React.Component {
+	constructor() {
+		super();
+
+		this.handleChange = this.handleChange.bind(this);
+	}
+
+	handleChange(event) {
+		this.props.handleChange(event.target.value);
+	}
+
+	render() {
+		return (
+			<Form.Field>
+				<Popup on="hover" content={this.props.parameter.description} trigger={
+					<div>
+						<label> {this.props.parameter.name} </label>
+
+						<Input focus fluid value={this.props.parameter.value}
+							onChange={this.handleChange}/>
+					</div>
+				}/>
+			</Form.Field>
+		);
+	}
 }
 
-function CheckboxParam(props) {
-	return (
-		<Form.Field>
-			<Popup on="hover" content={props.parameter.description} trigger={
-				<Checkbox label={props.parameter.name} onChange={props.handleChange}
-					checked={props.parameter.value}/>
-			}/>
-		</Form.Field>
-	);
+class CheckboxParam extends React.Component {
+	constructor() {
+		super();
+
+		this.handleChange = this.handleChange.bind(this);
+	}
+
+	handleChange(event) {
+		this.props.handleChange(!this.props.parameter.value);
+	}
+
+	render() {
+		return (
+			<Form.Field>
+				<Popup on="hover" content={this.props.parameter.description} trigger={
+					<Checkbox label={this.props.parameter.name}
+						checked={this.props.parameter.value}
+						onChange={this.handleChange}/>
+				}/>
+			</Form.Field>
+		);
+	}
 }
 
 class ParametersBox extends React.Component {
@@ -43,6 +70,8 @@ class ParametersBox extends React.Component {
 		this.handleOptimClick = this.handleOptimClick.bind(this);
 		this.handlePrepClick = this.handlePrepClick.bind(this);
 		this.handleMenuClose = this.handleMenuClose.bind(this);
+
+		this.parametersMenu = this.parametersMenu.bind(this);
 	}
 
 	/* Fetch R script parameters */
@@ -88,17 +117,20 @@ class ParametersBox extends React.Component {
 		sendOptionsRequest.send(this.state.parameters);
 	}
 
-	parametersMenu(params) {
-		return params.map(parameter => {
-			switch(parameter.type) {
+	parametersMenu(params, paramType) {
+		return params.map((param, idx) => {
+			switch(param.type) {
 			case "checkbox":
-				return <CheckboxParam parameter={parameter} handleChange={() => null}/>;
+				return <CheckboxParam parameter={param}
+						handleChange={this.onParamValueChange.bind(this, paramType, idx)}/>;
 			case "text":
-				return <TextParam parameter={parameter} handleChange={() => null}/>;
+				return <TextParam parameter={param}
+						handleChange={this.onParamValueChange.bind(this, paramType, idx)}/>;
 			case "dragDrop":
 				return null;
 			default:
-				return <TextParam parameter={parameter} handleChange={() => null}/>;
+				return <TextParam parameter={param}
+						handleChange={this.onParamValueChange.bind(this, paramType, idx)}/>;
 			}
 		});
 	}
@@ -129,6 +161,14 @@ class ParametersBox extends React.Component {
 
 	readFile(event) {
 
+	}
+
+	/* type - [Read, Optim, ...], idx - index of parameter */
+	onParamValueChange(type, idx, newValue) {
+		const newParams = this.state.parameters;
+
+		newParams[type][idx].value = newValue;
+		this.setState({parameters: newParams});
 	}
 
 	render() {
@@ -162,7 +202,7 @@ class ParametersBox extends React.Component {
 
 						<Modal.Content image>
 							<Modal.Description>
-								{this.parametersMenu(this.state.parameters.Read)}
+								{this.parametersMenu(this.state.parameters.Read, "Read")}
 							</Modal.Description>
 						</Modal.Content>
 
@@ -180,7 +220,7 @@ class ParametersBox extends React.Component {
 						<Modal.Header> Optimize parameters </Modal.Header>
 
 						<Modal.Content>
-							{this.parametersMenu(this.state.parameters.Optim)}
+							{this.parametersMenu(this.state.parameters.Optim, "Optim")}
 						</Modal.Content>
 
 						<Modal.Actions>
@@ -197,7 +237,7 @@ class ParametersBox extends React.Component {
 						<Modal.Header> Prepare parameters </Modal.Header>
 
 						<Modal.Content>
-							{this.parametersMenu(this.state.parameters.Prep)}
+							{this.parametersMenu(this.state.parameters.Prep, "Prep")}
 						</Modal.Content>
 
 						<Modal.Actions>
