@@ -1,57 +1,34 @@
 import React from "react"
 import ReactDOM from "react-dom"
 
-import {Image, Icon, Button, Popup, Form, Menu, Input, Modal, Checkbox} from "semantic-ui-react"
+import {Dropdown, Icon, Button, Popup, Form, Menu, Input, Modal, Checkbox} from "semantic-ui-react"
 
-class TextParam extends React.Component {
-	constructor() {
-		super();
+function TextParam(props) {
+    return (
+        <Form.Field>
+            <Popup on="hover" content={this.props.parameter.description} trigger={
+                <div>
+                    <label> {this.props.parameter.name} </label>
 
-		this.handleChange = this.handleChange.bind(this);
-	}
-
-	handleChange(event) {
-		this.props.handleChange(event.target.value);
-	}
-
-	render() {
-		return (
-			<Form.Field>
-				<Popup on="hover" content={this.props.parameter.description} trigger={
-					<div>
-						<label> {this.props.parameter.name} </label>
-
-						<Input focus fluid value={this.props.parameter.value}
-							onChange={this.handleChange}/>
-					</div>
-				}/>
-			</Form.Field>
-		);
-	}
+                    <Input focus fluid value={this.props.parameter.value}
+                        onChange={event => {this.handleChange(event.target.value)}}/>
+                </div>
+            }/>
+        </Form.Field>
+    );
 }
 
-class CheckboxParam extends React.Component {
-	constructor() {
-		super();
+function CheckboxParam(props) {
+    const isChecked = this.props.parameter.value;
 
-		this.handleChange = this.handleChange.bind(this);
-	}
-
-	handleChange(event) {
-		this.props.handleChange(!this.props.parameter.value);
-	}
-
-	render() {
-		return (
-			<Form.Field>
-				<Popup on="hover" content={this.props.parameter.description} trigger={
-					<Checkbox label={this.props.parameter.name}
-						checked={this.props.parameter.value}
-						onChange={this.handleChange}/>
-				}/>
-			</Form.Field>
-		);
-	}
+    return (
+        <Form.Field>
+            <Popup on="hover" content={this.props.parameter.description} trigger={
+                <Checkbox label={this.props.parameter.name} checked={isChecked}
+                    onChange={() => {this.props.handleChange(!isChecked)}}/>
+            }/>
+        </Form.Field>
+    );
 }
 
 class ParametersBox extends React.Component {
@@ -59,62 +36,110 @@ class ParametersBox extends React.Component {
 		super();
 
 		this.state = {
-			parameters: null,
+            /* Object with description of the models */
+			modelsInfo: null,
 
-			readParamsMenuActive: false,
-			optimParamsMenuActive: false,
-			prepParamsMenuActive: false
+            /* Name of the currently selected model */
+            currModel: null,
+
+            /* Array of parameters of selected model */
+            currModelParams: [],
+
+            /* Index of the current step */
+            currStep: null,
+
+            errorMsg: null
 		};
 
-		this.handleReadClick = this.handleReadClick.bind(this);
-		this.handleOptimClick = this.handleOptimClick.bind(this);
-		this.handlePrepClick = this.handlePrepClick.bind(this);
-		this.handleMenuClose = this.handleMenuClose.bind(this);
-
-		this.parametersMenu = this.parametersMenu.bind(this);
+        this.fetchModelNames = this.fetchModelNames.bind(this);
+		this.handleRScriptChoice = this.handleRScriptChoice.bind(this);
 	}
 
-	/* Fetch R script parameters */
 	componentDidMount() {
-		const getOptionsRequest = new XMLHttpRequest();
-
-		getOptionsRequest.addEventListener("load", request => {
-			try {
-				let parameters = JSON.parse(request.target.response);
-				this.setState({parameters: parameters});
-
-				for (let type in parameters) {
-					parameters[type] = parameters[type].map(param => {
-						param.value = param.defaultValue;
-						return param;
-					});
-				}
-			} catch(error) {
-				console.log(error);
-			}
-		});
-
-		getOptionsRequest.addEventListener("error", error => {
-			console.log(error);
-		});
-
-		getOptionsRequest.open("GET", "/parameters/");
-		getOptionsRequest.send();
+		this.fetchModelNames();
 	}
 
-	runRScript() {
+	fetchModelNames() {
+        const fetchModelNamesRequest = new XMLHttpRequest();
+
+        fetchModelNamesRequest.addEventListener("load", request => {
+            this.setState({modelsInfo: request.target.response});
+        });
+
+        fetchModelNamesRequest.addEventListener("error", request => {
+            this.setState({errorMsg: request.target.response});
+        });
+
+        fetchModelNamesRequest.open("GET", "/fetch_model_names/");
+        fetchModelNamesRequest.send();
+	}
+
+	fetchModelDescription(model) {
+		const fetchModelDescriptionRequest = new XMLHttpRequest();
+
+		fetchModelDescriptionRequest.addEventListener("load", request => {
+            const description = JSON.parse(request.target.response);
+
+            //TODO: Move from here
+            const parameters = description.parameters.map(stepParams => {
+                stepParams.map(param => param.defaultValue);
+            });
+
+            const newModelsInfo = Object.assign({}, this.state.modelsInfo);
+
+            newModelsInfo[model] = description;
+            this.setState({currModelParams: parameters});
+            this.setState({modelsInfo: newModelsInfo});
+		});
+
+		fetchModelDescriptionRequest.addEventListener("error", request => {
+            this.setState({errorMsg: request.target.response});
+		});
+
+        const modelNameForm = new FormData();
+        modelNameForm.set("model", model);
+
+		fetchModelDescriptionRequest.open("POST", "/fetch_model_description/");
+		fetchModelDescriptionRequest.send(modelNameForm);
+	}
+
+    /* Resets parameter values in-place */
+    resetParamsToDefaults(params) {
+        params.forEach(param => {
+            param.value = param.defaultValue;
+            return param;
+        });
+    }
+
+    // TODO: Add session ID
+	runModel(model) {
 		const sendOptionsRequest = new XMLHttpRequest();
 
-		sendOptionsRequest.addEventListener("load", request => {
-			console.log(request);
+		runModelRequest.addEventListener("load", request => {
+            // TODO: Add model response handling
+			console.log(request.target.response);
 		});
 
-		sendOptionsRequest.addEventListener("error", error => {
-			console.log(error);
+		runModelRequest.addEventListener("error", request => {
+            this.setState({errorMsg: request.target.response});
 		});
 
-		sendOptionsRequest.open("POST", "/parameters/");
-		sendOptionsRequest.send(this.state.parameters);
+        const modelForm = new FormData();
+        modelForm.set("model", this.state.modelsInfo[model]);
+        modelForm.set("parameters", params[this.state.currStep]);
+
+		runModelRequest.open("POST", "/run_model/");
+		runModelRequest.send(modelForm);
+	}
+
+	onParamValueChange(stepIdx, paramIdx, newValue) {
+		const newParams = this.state.currModelParams.slice();
+
+        /* Deep copy the changed parameter */
+        newParams[stepIdx] = newParams[stepIdx].slice();
+        newParams[stepIdx][paramIdx] = newValue;
+
+		this.setState({currModelParams: newParams});
 	}
 
 	parametersMenu(params, paramType) {
@@ -135,46 +160,32 @@ class ParametersBox extends React.Component {
 		});
 	}
 
-	handleReadClick(event) {
-		this.setState({readMenuActive: true});
-		this.setState({optimMenuActive: false});
-		this.setState({prepMenuActive: false});
-	}
-
-	handleOptimClick(event) {
-		this.setState({readMenuActive: false});
-		this.setState({optimMenuActive: true});
-		this.setState({prepMenuActive: false});
-	}
-
-	handlePrepClick(event) {
-		this.setState({readMenuActive: false});
-		this.setState({optimMenuActive: false});
-		this.setState({prepMenuActive: true});
-	}
-
 	handleMenuClose(event) {
 		this.setState({readMenuActive: false});
 		this.setState({optimMenuActive: false});
 		this.setState({prepMenuActive: false});
 	}
 
-	readFile(event) {
-
+	handleRScriptChoice(event) {
+		this.setState({rScript: event.target.value});
 	}
 
-	/* type - [Read, Optim, ...], idx - index of parameter */
-	onParamValueChange(type, idx, newValue) {
-		const newParams = this.state.parameters;
+    changeStep(event) {
+        console.log(event.target.response);
+    }
 
-		newParams[type][idx].value = newValue;
-		this.setState({parameters: newParams});
-	}
+    changeModel(event) {
+        this.setState({currModel: event.target.response});
+    }
 
 	render() {
+        const modelNames = (this.state.modelsInfo != null) ?
+            Object.keys(this.state.modelsInfo).map(model =>
+                this.state.modelsInfo[model].name
+            ) : [];
+
 		return (
 			<div>
-			{this.state.parameters != null &&
 				<div>
 					<Form>
 						<Menu fluid>
@@ -186,12 +197,16 @@ class ParametersBox extends React.Component {
 
 						<Menu vertical fluid>
 							<Menu.Item>
-								<Input type="file" onChange={this.readFile}/>
+								<Dropdown scrolling placeholder="Select model"
+                                    value={this.state.currModel}
+									onChange={this.changeModel}
+                                    options={modelNames}/>
 							</Menu.Item >
 
-							<Menu.Item name="Read" onClick={this.handleReadClick}/>
-							<Menu.Item name="Optimize" onClick={this.handleOptimClick}/>
-							<Menu.Item name="Prepare" onClick={this.handlePrepClick}/>
+                            {this.state.modelsInfo != null &&
+                            this.state.modelsInfo.steps.map(step =>
+                                <Menu.Item name={step.name} onClick={this.changeStep}/>
+                            )}
 						</Menu>
 
 						<Button primary> Export as CSV </Button>
@@ -202,7 +217,7 @@ class ParametersBox extends React.Component {
 
 						<Modal.Content image>
 							<Modal.Description>
-								{this.parametersMenu(this.state.parameters.Read, "Read")}
+								{this.parametersMenu(this.state.selectedStep)}
 							</Modal.Description>
 						</Modal.Content>
 
@@ -212,40 +227,6 @@ class ParametersBox extends React.Component {
 							</Button>
 							<Button color='green' inverted>
 								<Icon name='checkmark'/> Run
-							</Button>
-						</Modal.Actions>
-					</Modal>
-
-					<Modal size="fullscreen" open={this.state.optimMenuActive} onClose={this.handleMenuClose}>
-						<Modal.Header> Optimize parameters </Modal.Header>
-
-						<Modal.Content>
-							{this.parametersMenu(this.state.parameters.Optim, "Optim")}
-						</Modal.Content>
-
-						<Modal.Actions>
-							<Button basic color='red' inverted>
-								<Icon name='remove' /> Cancel
-							</Button>
-							<Button color='green' inverted>
-								<Icon name='checkmark' /> Run
-							</Button>
-						</Modal.Actions>
-					</Modal>
-
-					<Modal size="fullscreen" open={this.state.prepMenuActive} onClose={this.handleMenuClose}>
-						<Modal.Header> Prepare parameters </Modal.Header>
-
-						<Modal.Content>
-							{this.parametersMenu(this.state.parameters.Prep, "Prep")}
-						</Modal.Content>
-
-						<Modal.Actions>
-							<Button basic color='red' inverted>
-								<Icon name='remove' /> Cancel
-							</Button>
-							<Button color='green' inverted>
-								<Icon name='checkmark' /> Run
 							</Button>
 						</Modal.Actions>
 					</Modal>
