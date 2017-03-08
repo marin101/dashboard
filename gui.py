@@ -12,6 +12,8 @@ import os
 import glob
 import json
 
+import subprocess
+
 MODELS_DIRECTORY = os.path.join(".", "models")
 
 IP_ADDRESS = "0.0.0.0"
@@ -58,14 +60,14 @@ def fetch_model_description():
 @app.route("/run_model/", methods=["POST"])
 def run_model():
     model = json.loads(request.form["model"])
-    print model
-    parameters = json.loads(request.form["parameters"])
+    params = json.loads(request.form["parameters"])
 
-    print parameters
-    run_model(os.path(MODELS_DIRECTORY, model), parameters)
+    model_call = [os.path.join(MODELS_DIRECTORY, model + ".R")]
+    model_call.extend(map(lambda x: str(x), params))
 
-    #TODO:
-    return json.dumps(None)
+
+    result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
+    return json.dumps(result.stdout.readlines());
 
 if __name__ == "__main__":
     app.run(debug = True, threaded = True)

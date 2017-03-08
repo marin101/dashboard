@@ -74,5 +74,5 @@ cat('\n', paste0('budget_factor    :',budget_factor ));
 cat('\n', paste0('sales_factor   :',sales_factor));
 
 
-source(file ='file2.R', local = TRUE, verbose = FALSE, print.eval = TRUE, echo = FALSE)
+source(file ='./models/file2.R', local = TRUE, verbose = FALSE, print.eval = TRUE, echo = FALSE)
 

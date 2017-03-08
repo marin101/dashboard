@@ -174,7 +174,7 @@ class ParametersBox extends React.Component {
 
 		runModelRequest.addEventListener("load", request => {
             this.setState({currStepIdx: this.state.currStepIdx + 1});
-            this.props.returnModelOutput(request.target.response);
+            this.props.returnModelOutput(JSON.parse(request.target.response));
 		});
 
 		runModelRequest.addEventListener("error", request => {

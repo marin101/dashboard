@@ -15,7 +15,7 @@ class Prototype extends React.Component {
         super();
 
         this.state = {
-            modelOutput: null
+            modelOutput: []
         };
 
         this.onModelOutput = this.onModelOutput.bind(this);

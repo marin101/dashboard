@@ -13,13 +13,21 @@ class ConsoleOutputBox extends React.Component {
 	}
 
 	render() {
+        let idx = 0;
+
 		return (
-			<div style={{"width": "100%", "marginTop": "1px", "marginLeft": "-1px"}}>
+			<div style={{"width": "100%", "marginTop": "1px", "marginLeft": "-1px",
+                "overflow": "auto"}}>
+
 				<Header dividing block>
 					Console output
 				</Header>
 
-                {this.props.output}
+                {this.props.output.map(line =>
+                    <div key={idx++}>
+                        {line} <br/>
+                    </div>
+                )}
 			</div>
 		);
 	}
