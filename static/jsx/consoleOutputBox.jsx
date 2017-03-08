@@ -4,24 +4,12 @@ import ReactDOM from "react-dom"
 import {Header, Container, Menu} from "semantic-ui-react"
 
 class ConsoleOutputBox extends React.Component {
-	constructor() {
-		super();
+	constructor(props) {
+		super(props);
 
 		this.state = {
-			consoleOutput: null
+			consoleOutput: props.consoleOutput
 		}
-	}
-
-	componentDidMount() {
-		let consoleOutputStream = new XMLHttpRequest("/output_stream/");
-
-		consoleOutputStream.addEventListener("error", error => {
-			console.log(error);
-		});
-
-		consoleOutputStream.addEventListener("console_output", message => {
-			this.setState({consoleOutput: JSON.parse(message.data)});
-		});
 	}
 
 	render() {
@@ -30,6 +18,8 @@ class ConsoleOutputBox extends React.Component {
 				<Header dividing block>
 					Console output
 				</Header>
+
+                {this.props.output}
 			</div>
 		);
 	}

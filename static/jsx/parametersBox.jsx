@@ -6,12 +6,12 @@ import {Dropdown, Icon, Button, Popup, Form, Menu, Input, Modal, Checkbox} from 
 function TextParam(props) {
     return (
         <Form.Field>
-            <Popup on="hover" content={this.props.parameter.description} trigger={
+            <Popup on="hover" content={props.parameter.description} trigger={
                 <div>
-                    <label> {this.props.parameter.name} </label>
+                    <label> {props.parameter.name} </label>
 
-                    <Input focus fluid value={this.props.parameter.value}
-                        onChange={event => {this.handleChange(event.target.value)}}/>
+                    <Input focus fluid value={props.parameter.value}
+                        onChange={event => {props.onChange(event.target.value)}}/>
                 </div>
             }/>
         </Form.Field>
@@ -19,15 +19,64 @@ function TextParam(props) {
 }
 
 function CheckboxParam(props) {
-    const isChecked = this.props.parameter.value;
+    const isChecked = props.parameter.value;
 
     return (
         <Form.Field>
-            <Popup on="hover" content={this.props.parameter.description} trigger={
-                <Checkbox label={this.props.parameter.name} checked={isChecked}
-                    onChange={() => {this.props.handleChange(!isChecked)}}/>
+            <Popup on="hover" content={props.parameter.description} trigger={
+                <Checkbox label={props.parameter.name} checked={isChecked}
+                    onChange={() => {props.onChange(!isChecked)}}/>
             }/>
         </Form.Field>
+    );
+}
+
+function ParametersDialog(props) {
+    if (props.step == null) return null;
+
+    const runModel = () => {
+        const params = props.params.map(param => param.value);
+
+        props.onRunModel(props.model.id, params);
+        props.onClose();
+    };
+
+    return (
+        <Modal size="fullscreen" open={props.isOpen} onClose={props.onClose}>
+            <Modal.Header> {props.step.name} </Modal.Header>
+
+            <Modal.Content>
+                <Modal.Description>
+                    {props.params.map((param, idx) => {
+                        const fcn = props.onChange.bind(this, props.step.index, idx);
+
+                        switch(param.type) {
+                            case "checkbox":
+                                return <CheckboxParam parameter={param} key={idx}
+                                            onChange={fcn}/>
+                            case "text":
+                                return <TextParam parameter={param} key={idx}
+                                            onChange={fcn}/>
+                            case "dragDrop":
+                                //TODO:
+                                return null;
+                            default:
+                                return <TextParam parameter={param} key={idx}
+                                            onChange={fcn}/>
+                        }
+                    })}
+                </Modal.Description>
+            </Modal.Content>
+
+            <Modal.Actions>
+                <Button basic color='red' inverted>
+                    <Icon name='remove'/> Cancel
+                </Button>
+                <Button color='green' inverted onClick={runModel}>
+                    <Icon name='checkmark'/> Run
+                </Button>
+            </Modal.Actions>
+        </Modal>
     );
 }
 
@@ -37,43 +86,51 @@ class ParametersBox extends React.Component {
 
 		this.state = {
             /* Object with description of the models */
-			modelsInfo: null,
+			modelsInfo: {},
 
             /* Name of the currently selected model */
-            currModel: null,
+            currModelId: null,
 
             /* Array of parameters of selected model */
             currModelParams: [],
 
             /* Index of the current step */
-            currStep: null,
+            currStepIdx: null,
+
+            /* Controls whether parameters dialog should be open */
+            isParamsDialogOpen: false,
 
             errorMsg: null
 		};
 
-        this.fetchModelNames = this.fetchModelNames.bind(this);
-		this.handleRScriptChoice = this.handleRScriptChoice.bind(this);
+        this.fetchModelsMetadata = this.fetchModelsMetadata.bind(this);
+
+        this.runModel = this.runModel.bind(this);
+        this.changeModel = this.changeModel.bind(this);
+        this.changeParamValue = this.changeParamValue.bind(this);
+        this.openParamsDialog = this.openParamsDialog.bind(this);
 	}
 
 	componentDidMount() {
-		this.fetchModelNames();
+		this.fetchModelsMetadata();
 	}
 
-	fetchModelNames() {
-        const fetchModelNamesRequest = new XMLHttpRequest();
+	fetchModelsMetadata() {
+        const fetchModelsMetadataRequest = new XMLHttpRequest();
 
-        fetchModelNamesRequest.addEventListener("load", request => {
-            this.setState({modelsInfo: request.target.response});
+        fetchModelsMetadataRequest.addEventListener("load", request => {
+            this.setState({modelsInfo: JSON.parse(request.target.response)});
         });
 
-        fetchModelNamesRequest.addEventListener("error", request => {
+        fetchModelsMetadataRequest.addEventListener("error", request => {
             this.setState({errorMsg: request.target.response});
         });
 
-        fetchModelNamesRequest.open("GET", "/fetch_model_names/");
-        fetchModelNamesRequest.send();
+        fetchModelsMetadataRequest.open("GET", "/fetch_models_metadata/");
+        fetchModelsMetadataRequest.send();
 	}
 
+    /* TODO: Not used at the moment */
 	fetchModelDescription(model) {
 		const fetchModelDescriptionRequest = new XMLHttpRequest();
 
@@ -97,7 +154,7 @@ class ParametersBox extends React.Component {
 		});
 
         const modelNameForm = new FormData();
-        modelNameForm.set("model", model);
+        modelNameForm.set("model", JSON.stringify(model));
 
 		fetchModelDescriptionRequest.open("POST", "/fetch_model_description/");
 		fetchModelDescriptionRequest.send(modelNameForm);
@@ -112,12 +169,12 @@ class ParametersBox extends React.Component {
     }
 
     // TODO: Add session ID
-	runModel(model) {
-		const sendOptionsRequest = new XMLHttpRequest();
+	runModel(modelId, params) {
+		const runModelRequest = new XMLHttpRequest();
 
 		runModelRequest.addEventListener("load", request => {
-            // TODO: Add model response handling
-			console.log(request.target.response);
+            this.setState({currStepIdx: this.state.currStepIdx + 1});
+            this.props.returnModelOutput(request.target.response);
 		});
 
 		runModelRequest.addEventListener("error", request => {
@@ -125,114 +182,109 @@ class ParametersBox extends React.Component {
 		});
 
         const modelForm = new FormData();
-        modelForm.set("model", this.state.modelsInfo[model]);
-        modelForm.set("parameters", params[this.state.currStep]);
+        modelForm.set("model", JSON.stringify(modelId));
+        modelForm.set("parameters", JSON.stringify(params));
 
 		runModelRequest.open("POST", "/run_model/");
 		runModelRequest.send(modelForm);
 	}
 
-	onParamValueChange(stepIdx, paramIdx, newValue) {
-		const newParams = this.state.currModelParams.slice();
-
+	changeParamValue(stepIdx, paramIdx, newValue) {
         /* Deep copy the changed parameter */
+		const newParams = this.state.currModelParams.slice();
         newParams[stepIdx] = newParams[stepIdx].slice();
-        newParams[stepIdx][paramIdx] = newValue;
 
+        newParams[stepIdx][paramIdx] = Object.assign({},
+                newParams[stepIdx][paramIdx]
+        );
+
+        newParams[stepIdx][paramIdx].value = newValue;
 		this.setState({currModelParams: newParams});
 	}
 
-	parametersMenu(params, paramType) {
-		return params.map((param, idx) => {
-			switch(param.type) {
-			case "checkbox":
-				return <CheckboxParam parameter={param}
-						handleChange={this.onParamValueChange.bind(this, paramType, idx)}/>;
-			case "text":
-				return <TextParam parameter={param}
-						handleChange={this.onParamValueChange.bind(this, paramType, idx)}/>;
-			case "dragDrop":
-				return null;
-			default:
-				return <TextParam parameter={param}
-						handleChange={this.onParamValueChange.bind(this, paramType, idx)}/>;
-			}
-		});
-	}
+    changeModel(event, data) {
+        const modelId = data.value;
+        const model = this.state.modelsInfo[modelId];
 
-	handleMenuClose(event) {
-		this.setState({readMenuActive: false});
-		this.setState({optimMenuActive: false});
-		this.setState({prepMenuActive: false});
-	}
+        this.setState({
+            currModelId: modelId,
+            currStepIdx: 0,
 
-	handleRScriptChoice(event) {
-		this.setState({rScript: event.target.value});
-	}
-
-    changeStep(event) {
-        console.log(event.target.response);
+            /* Deep copy of parameters */
+            currModelParams: model.parameters.map(paramsGrp =>
+                paramsGrp.map(param =>
+                    Object.assign({}, param, {value: param.defaultValue})
+                )
+            )
+        });
     }
 
-    changeModel(event) {
-        this.setState({currModel: event.target.response});
+    openParamsDialog(event, data) {
+        if (!data.disabled) {
+            this.setState({
+                currStepIdx: data.index,
+                isParamsDialogOpen: true
+            });
+        }
     }
 
 	render() {
-        const modelNames = (this.state.modelsInfo != null) ?
-            Object.keys(this.state.modelsInfo).map(model =>
-                this.state.modelsInfo[model].name
-            ) : [];
+        const selectedModel = (this.state.currModelId != null) ? Object.assign({},
+            this.state.modelsInfo[this.state.currModelId],
+            {id: this.state.currModelId}
+        ) : null;
+
+        const currentStep = (selectedModel != null) ? Object.assign({},
+            selectedModel.steps[this.state.currStepIdx],
+            {index: this.state.currStepIdx}
+        ) : null;
+
+        const currentParams = this.state.currModelParams[this.state.currStepIdx];
+
+        const modelDropdownChoice = Object.keys(this.state.modelsInfo).map(model => ({
+            text: this.state.modelsInfo[model].name,
+            value: model
+        }));
 
 		return (
 			<div>
-				<div>
-					<Form>
-						<Menu fluid>
-							<Menu.Item name="New session" onClick={this.restartSession}>
-							</Menu.Item>
-							<Menu.Item name="Save session" onClick={this.saveSession}>
-							</Menu.Item>
-						</Menu>
+                <Form>
+                    <Menu fluid>
+                        <Menu.Item name="New session" onClick={this.restartSession}>
+                        </Menu.Item>
+                        <Menu.Item name="Save session" onClick={this.saveSession}>
+                        </Menu.Item>
+                    </Menu>
 
-						<Menu vertical fluid>
-							<Menu.Item>
-								<Dropdown scrolling placeholder="Select model"
-                                    value={this.state.currModel}
-									onChange={this.changeModel}
-                                    options={modelNames}/>
-							</Menu.Item >
+                    <Menu vertical fluid>
+                        <Menu.Item>
+                            <Dropdown scrolling placeholder="Select model"
+                                options={modelDropdownChoice}
+                                onChange={this.changeModel}/>
+                        </Menu.Item>
 
-                            {this.state.modelsInfo != null &&
-                            this.state.modelsInfo.steps.map(step =>
-                                <Menu.Item name={step.name} onClick={this.changeStep}/>
-                            )}
-						</Menu>
+                        <Menu.Item/>
 
-						<Button primary> Export as CSV </Button>
-					</Form>
+                        {selectedModel != null && selectedModel.steps.map((step, idx) =>
+                            <Menu.Item name={step.name} key={idx} index={idx}
+                                active={this.state.currStepIdx === idx}
+                                disabled={idx > this.state.currStepIdx}
+                                onClick={this.openParamsDialog}/>
+                        )}
+                    </Menu>
 
-					<Modal size="fullscreen" dimmer={false} open={this.state.readMenuActive} onClose={this.handleMenuClose}>
-						<Modal.Header> Read parameters </Modal.Header>
+                    <Button primary> Export as CSV </Button>
+                </Form>
 
-						<Modal.Content image>
-							<Modal.Description>
-								{this.parametersMenu(this.state.selectedStep)}
-							</Modal.Description>
-						</Modal.Content>
-
-						<Modal.Actions>
-							<Button basic color='red' inverted>
-								<Icon name='remove'/> Cancel
-							</Button>
-							<Button color='green' inverted>
-								<Icon name='checkmark'/> Run
-							</Button>
-						</Modal.Actions>
-					</Modal>
-				</div>
-			}
-		</div>
+                <ParametersDialog isOpen={this.state.isParamsDialogOpen}
+                    onClose={() => {this.setState({isParamsDialogOpen: false})}}
+                    onRunModel={this.runModel}
+                    onChange={this.changeParamValue}
+                    params={currentParams}
+                    model={selectedModel}
+                    step={currentStep}
+                />
+		    </div>
 		);
 	}
 }

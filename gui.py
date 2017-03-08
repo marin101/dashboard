@@ -25,22 +25,25 @@ app.debug = False
 def index(path):
     return render_template("index.html")
 
-@app.route("/fetch_model_names/", methods=["GET"])
-def fetch_model_names():
-    model_names = {}
+@app.route("/fetch_models_metadata/", methods=["GET"])
+def fetch_models_metadata():
+    models = {}
 
-    for f in glob.glob(os.path.join(MODELS_DIRECTORY, "*.json")):
-        with open(f, 'w') as description:
-            model_names[f[:-5]] = json.load(description)["name"]
+    for metadata_file in glob.glob(os.path.join(MODELS_DIRECTORY, "*.json")):
+        filename = os.path.relpath(metadata_file, MODELS_DIRECTORY)[:-5]
 
-    return json.dumps(model_names)
+        with open(metadata_file, 'r') as metadata:
+            models[filename] = json.load(metadata)
 
+    return json.dumps(models)
+
+# TODO: Not used for now
 @app.route("/fetch_model_description/", methods=["POST"])
 def fetch_model_description():
     model = json.loads(request.form["model"])
 
     try:
-        with open(os.path.join(MODELS_DIRECTORY, model, ".json")) as f:
+        with open(os.path.join(MODELS_DIRECTORY, model, ".json"), 'r') as f:
             description = json.load(f)
     except IOError as e:
         description = {
@@ -54,10 +57,15 @@ def fetch_model_description():
 
 @app.route("/run_model/", methods=["POST"])
 def run_model():
-    model = json.loads(request.form["model_filename"])
+    model = json.loads(request.form["model"])
+    print model
     parameters = json.loads(request.form["parameters"])
 
-    run_model(parameters)
+    print parameters
+    run_model(os.path(MODELS_DIRECTORY, model), parameters)
+
+    #TODO:
+    return json.dumps(None)
 
 if __name__ == "__main__":
     app.run(debug = True, threaded = True)

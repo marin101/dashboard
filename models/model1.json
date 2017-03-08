@@ -22,7 +22,7 @@
             "id": "optim",
             "name": "Optimization",
             "description": "Description of this step"
-        },
+        }
     ],
 
     "parameters": [
@@ -33,10 +33,10 @@
             "name": "Input data",
             "description": "Upload input data in CSV format",
 
-            "defaultValue": null,
-            "returnValue": null,
+            "defaultValue": "NULL",
+            "returnValue": "NULL",
 
-            "choice": null,
+            "choice": "NULL",
             "required": true
           },
           {
@@ -45,10 +45,10 @@
              "name": "Select target variable",
              "description": "What you want to model",
 
-             "defaultValue": null,
-             "returnValue": null,
+             "defaultValue": "NULL",
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": true
           },
           {
@@ -57,10 +57,10 @@
              "name": "Select subject",
              "description": "Level at which impacts will be reported",
 
-             "defaultValue": null,
-             "returnValue": null,
+             "defaultValue": "NULL",
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": true
           },
           {
@@ -69,10 +69,10 @@
              "name": "Select period",
              "description": "Column which represents time period",
 
-             "defaultValue": null,
-             "returnValue": null,
+             "defaultValue": "NULL",
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": true
           },
           {
@@ -82,9 +82,9 @@
              "description": "Periods prior to this will not be included in the model",
 
              "defaultValue": "1970-01-01",
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -94,9 +94,9 @@
              "description": "Periods post this will not be included in the model",
 
              "defaultValue": "9999-01-01",
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -118,9 +118,9 @@
              "description": "These will NOT be used for modeling",
 
              "defaultValue": "NA",
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -141,7 +141,7 @@
              "name": "Treat outliers?",
              "description": "Outliers will be replaced with median",
 
-             "defaultValue": 0,
+             "defaultValue": false,
              "returnValue": [1, 0],
 
              "choice": [true, false],
@@ -154,9 +154,9 @@
              "description": "Subjects will be dropped if they have data for less than static % of periods",
 
              "defaultValue": 0,
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           }
         ],
@@ -167,7 +167,7 @@
              "name": "Apply adstock decay?",
              "description": "Apply adstock decay?",
 
-             "defaultValue": 1,
+             "defaultValue": true,
              "returnValue": [1, 0],
 
              "choice": [true, false],
@@ -180,9 +180,9 @@
              "description": "All decay rates starting from this value will be modeled",
 
              "defaultValue": 0.5,
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -192,9 +192,9 @@
              "description": "All decay rates upto this value will be modeled",
 
              "defaultValue": 0.8,
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -203,7 +203,7 @@
              "name": "Apply log transformation?",
              "description": "Can be applied to target variables only or both target variables and factors",
 
-             "defaultValue": 1,
+             "defaultValue": true,
              "returnValue": [0, 1, 2],
 
              "choice": ["None","Semi-log","Log-log"],
@@ -215,7 +215,7 @@
              "name": "Apply mean centering?",
              "description": "Apply mean centering?",
 
-             "defaultValue": 1,
+             "defaultValue": true,
              "returnValue": [1, 0],
 
              "choice": [true, false],
@@ -229,7 +229,7 @@
              "name": "Model seasonality?",
              "description": "Options for modeling seasonality",
 
-             "defaultValue": 1,
+             "defaultValue": true,
              "returnValue": [0, 1, 2],
 
              "choice": ["None","Dummy Month Factors","Numeric Sales Factors"],
@@ -242,9 +242,9 @@
              "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
              "defaultValue": "NA",
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -254,9 +254,9 @@
              "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
              "defaultValue": "NA",
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -302,9 +302,9 @@
              "description": "List of prior values",
 
              "defaultValue": "NA",
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -325,10 +325,10 @@
              "name": "Enter per unit channel costs",
              "description": "Required for calculating ROI",
 
-             "defaultValue": null,
-             "returnValue": null,
+             "defaultValue": "NULL",
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -338,9 +338,9 @@
              "description": "Required for calculating ROI",
 
              "defaultValue": 1,
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           }
        ],
@@ -364,9 +364,9 @@
              "description": "Expands the Budget Constraint to go beyond current budget",
 
              "defaultValue": 1,
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           },
           {
@@ -376,9 +376,9 @@
              "description": "Expands the Sales Target Constraint to go beyond current sales",
 
              "defaultValue": 1,
-             "returnValue": null,
+             "returnValue": "NULL",
 
-             "choice": null,
+             "choice": "NULL",
              "required": false
           }
         ]

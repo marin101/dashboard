@@ -11,6 +11,20 @@ import {ConsoleOutputBox} from "./consoleOutputBox.jsx"
 import "../css/styles.css"
 
 class Prototype extends React.Component {
+    constructor() {
+        super();
+
+        this.state = {
+            modelOutput: null
+        };
+
+        this.onModelOutput = this.onModelOutput.bind(this);
+    }
+
+    onModelOutput(output) {
+        this.setState({modelOutput: output});
+    }
+
 	render() {
 		return (
 			<Container fluid style={{"height": "100%", "overflow": "hidden"}}>
@@ -19,11 +33,11 @@ class Prototype extends React.Component {
 				</Menu>
 
 				<SplitPane split="vertical" defaultSize="20%" maxSize="98%" style={{"marginTop":"3em"}}>
-					<ParametersBox/>
+					<ParametersBox returnModelOutput={this.onModelOutput}/>
 
 					<SplitPane split="horizontal" primary="second" defaultSize="35%" maxSize="98%">
 						<ModelOutputBox/>
-						<ConsoleOutputBox/>
+						<ConsoleOutputBox output={this.state.modelOutput}/>
 					</SplitPane>
 				</SplitPane>
 			</Container>
