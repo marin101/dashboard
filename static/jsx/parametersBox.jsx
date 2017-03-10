@@ -37,7 +37,7 @@ function ParametersDialog(props) {
     const runModel = () => {
         const params = props.params.map(param => param.value);
 
-        props.onRunModel(props.model.id, params);
+        props.onRunModel(props.model.id, props.step.index+1, params);
         props.onClose();
     };
 
@@ -47,7 +47,7 @@ function ParametersDialog(props) {
 
             <Modal.Content>
                 <Modal.Description>
-                    {props.params.map((param, idx) => {
+                    {props.params != null && props.params.map((param, idx) => {
                         const fcn = props.onChange.bind(this, props.step.index, idx);
 
                         switch(param.type) {
@@ -169,7 +169,7 @@ class ParametersBox extends React.Component {
     }
 
     // TODO: Add session ID
-	runModel(modelId, params) {
+	runModel(modelId, stepIdx, params) {
 		const runModelRequest = new XMLHttpRequest();
 
 		runModelRequest.addEventListener("load", request => {
@@ -183,7 +183,7 @@ class ParametersBox extends React.Component {
 
         const modelForm = new FormData();
         modelForm.set("model", JSON.stringify(modelId));
-        modelForm.set("parameters", JSON.stringify(params));
+        modelForm.set("parameters", JSON.stringify([stepIdx, ...params]));
 
 		runModelRequest.open("POST", "/run_model/");
 		runModelRequest.send(modelForm);
@@ -266,7 +266,7 @@ class ParametersBox extends React.Component {
                         <Menu.Item/>
 
                         {selectedModel != null && selectedModel.steps.map((step, idx) =>
-                            <Menu.Item name={step.name} key={idx} index={idx}
+                            <Menu.Item name={idx+1 + ". " + step.name} key={idx} index={idx}
                                 active={this.state.currStepIdx === idx}
                                 disabled={idx > this.state.currStepIdx}
                                 onClick={this.openParamsDialog}/>

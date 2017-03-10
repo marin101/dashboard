@@ -70,6 +70,11 @@ def run_model():
     return json.dumps(result.stdout.readlines());
 
 if __name__ == "__main__":
+    try:
+        os.mkdir(MODELS_DIRECTORY)
+    except:
+        pass
+
     app.run(debug = True, threaded = True)
 
     HTTPServer = WSGIServer((IP_ADDRESS, PORT), app)
