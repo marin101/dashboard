@@ -11,6 +11,7 @@ from gevent.pywsgi import WSGIServer
 import os
 import glob
 import json
+import yaml
 
 import subprocess
 
@@ -31,11 +32,11 @@ def index(path):
 def fetch_models_metadata():
     models = {}
 
-    for metadata_file in glob.glob(os.path.join(MODELS_DIRECTORY, "*.json")):
+    for metadata_file in glob.glob(os.path.join(MODELS_DIRECTORY, "*.yaml")):
         filename = os.path.relpath(metadata_file, MODELS_DIRECTORY)[:-5]
 
         with open(metadata_file, 'r') as metadata:
-            models[filename] = json.load(metadata)
+            models[filename] = yaml.safe_load(metadata)
 
     return json.dumps(models)
 
@@ -46,7 +47,7 @@ def fetch_model_description():
 
     try:
         with open(os.path.join(MODELS_DIRECTORY, model, ".json"), 'r') as f:
-            description = json.load(f)
+            description = yaml.safe_load(f)
     except IOError as e:
         description = {
             "error": {

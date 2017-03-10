@@ -1,55 +1,57 @@
 {
-    "name": "Name of the module",
-    "description": "Description of the module",
+    name: "Name of the module",
+    description: "Description of the module",
 
-    "steps": [
+    # Order of steps must correspond with the order of parameter lists
+    steps: [
         {
-            "id": "read",
-            "name": "Read",
-            "description": "Description of this step"
+            id: "read",
+            name: "Read",
+            description: "Description of this step"
         },
         {
-            "id": "prep",
-            "name": "Preparation",
-            "description": "Description of this step"
+            id: "prep",
+            name: "Preparation",
+            description: "Description of this step"
         },
         {
-            "id": "model",
-            "name": "Model",
-            "description": "Description of this step"
+            id: "model",
+            name: "Model",
+            description: "Description of this step"
         },
         {
-            "id": "optim",
-            "name": "Optimization",
-            "description": "Description of this step"
+            id: "optim",
+            name: "Optimization",
+            description: "Description of this step"
         }
     ],
 
-    "parameters": [
+    parameters: [
     [
+        # Read step parameters
         {
-            "id": "file1",
-            "type": "file",
-            "name": "Input data",
-            "description": "Upload input data in CSV format",
+            id: "file1",
+            type: "file",
+            name: "Input data",
+            description: "Upload input data in CSV format",
 
-            "defaultValue": "NULL",
-            "returnValue": "NULL",
+            defaultValue: "NULL",
+            returnValue: "NULL",
 
-            "choice": "NULL",
-            "required": true
+            choice: "NULL",
+            required: true
           },
           {
-             "id": "depvar",
-             "type": "dragDrop",
-             "name": "Select target variable",
-             "description": "What you want to model",
+             id: "depvar",
+             type: "dragDrop",
+             name: "Select target variable",
+             description: "What you want to model",
 
-             "defaultValue": "NULL",
-             "returnValue": "NULL",
+             defaultValue: "NULL",
+             returnValue: "NULL",
 
-             "choice": "NULL",
-             "required": true
+             choice: "NULL",
+             required: true
           },
           {
              "id": "subject",
@@ -160,6 +162,8 @@
              "required": false
           }
         ],
+
+        # Preparation step parameters
         [
           {
              "id": "use_decay",
@@ -222,6 +226,8 @@
              "required": false
           }
        ],
+
+        # Model step parameters
         [
           {
              "id": "use_seas",
@@ -344,6 +350,8 @@
              "required": false
           }
        ],
+
+        # Optimize step parameters
            [
           {
              "id": "optim_goal",
