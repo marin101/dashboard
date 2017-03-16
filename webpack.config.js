@@ -21,6 +21,11 @@ module.exports = {
 		'react-dom',
 		'react-split-pane',
 
+        'rc-slider',
+
+        'react-dnd',
+        'react-dnd-html5-backend',
+
 		'semantic-ui-react'
     ]
   },

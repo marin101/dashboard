@@ -1,14 +1,14 @@
-import React from "react"
-import ReactDOM from "react-dom"
+import React from "react";
+import ReactDOM from "react-dom";
 
-import SplitPane from 'react-split-pane'
-import {Container, Grid, Menu, Image} from "semantic-ui-react"
+import SplitPane from 'react-split-pane';
+import {Container, Grid, Menu, Image} from "semantic-ui-react";
 
-import {ParametersBox} from "./parametersBox.jsx"
-import {ModelOutputBox} from "./modelOutputBox.jsx"
-import {ConsoleOutputBox} from "./consoleOutputBox.jsx"
+import ParametersBox from "./parametersBox.jsx";
+import ModelOutputBox from "./modelOutputBox.jsx";
+import ConsoleOutputBox from "./consoleOutputBox.jsx";
 
-import "../css/styles.css"
+import "../css/styles.css";
 
 class Prototype extends React.Component {
     constructor() {

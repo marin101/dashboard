@@ -31,5 +31,5 @@ class ConsoleOutputBox extends React.Component {
 	}
 }
 
-export {ConsoleOutputBox};
+export default ConsoleOutputBox;
 

@@ -36,5 +36,5 @@ class ModelOutputBox extends React.Component {
 	}
 }
 
-export {ModelOutputBox};
+export default ModelOutputBox;
 

@@ -9,6 +9,7 @@ from flask import Flask, Response, render_template, request, stream_with_context
 from gevent.pywsgi import WSGIServer
 
 import os
+import csv
 import glob
 import json
 import yaml
@@ -16,6 +17,7 @@ import yaml
 import subprocess
 
 MODELS_DIRECTORY = os.path.join(".", "models")
+USERS_DIRECTORY = os.path.join(".", "users")
 
 IP_ADDRESS = "0.0.0.0"
 PORT = 5500
@@ -70,10 +72,41 @@ def run_model():
     result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
     return json.dumps(result.stdout.readlines());
 
+@app.route("/upload_CSV_file/", methods=["POST"])
+def upload_CSV_file():
+    CSV_filename = os.path.join(USERS_DIRECTORY, "user.csv")
+
+    CSV_file = request.files["CSVfile"]
+    CSV_file.save(CSV_filename)
+
+    try:
+        with open(CSV_filename, 'r') as f:
+            csv_fieldnames = csv.DictReader(f).fieldnames
+    except IOError:
+        pass
+
+    return json.dumps({"filename": CSV_filename, "fieldnames": csv_fieldnames})
+
+@app.route("/fetch_CSV_column/", methods=["POST"])
+def fetch_CSV_column():
+    CSV_fieldname = json.loads(request.form["fieldname"])
+
+    column_values = []
+    with open(os.path.join(USERS_DIRECTORY, "user.csv")) as f:
+        for row in csv.DictReader(f):
+            column_values.append(row[CSV_fieldname])
+
+    return json.dumps(column_values)
+
 if __name__ == "__main__":
     try:
         os.mkdir(MODELS_DIRECTORY)
-    except:
+    except OSError:
+        pass
+
+    try:
+        os.mkdir(USERS_DIRECTORY)
+    except OSError:
         pass
 
     app.run(debug = True, threaded = True)
