@@ -59,18 +59,18 @@
              "name": "Model start period",
              "description": "Periods prior to this will not be included in the model",
 
-            references: period,
+             source: period,
           },
           {
              "id": "datefmt",
-             "type": "radio",
+             "type": "radio",           # Mutually exclusive checkboxes
              "name": "Date format",
              "description": "Format in which dates are stored in the input file",
 
-             "defaultValue": 0,
-             "returnValue": ["%Y-%m-%d","%d-%m-%Y","%m-%d-%Y"],
+             "defaultValue": 0,         # Index in the choice array
 
-             "choice": ["YYYY-MM-DD","DD-MM-YYYY","MM-DD-YYYY"],
+             "choice": ["YYYY-MM-DD", "DD-MM-YYYY", "MM-DD-YYYY"],
+             "returnValue": ["%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y"],
           },
           {
              "id": "lst_dim",
@@ -79,20 +79,15 @@
              "description": "These will NOT be used for modeling",
 
              "defaultValue": "NA",
-             "returnValue": "NULL",
-
-             "choice": "NULL",
           },
           {
-             "id": "impute",
-             "type": "checkbox",
-             "name": "Impute missing values?",
-             "description": "Missing values will be replaced with zero",
+             id: "impute",
+             type: "checkbox",
+             name: "Impute missing values?",
+             description: "Missing values will be replaced with zero",
 
-             "defaultValue": true,
-             "returnValue": [1, 0],
-
-             "choice": [true, false],
+             defaultValue: true,            # true = checked, false == unchecked
+             returnValue: ['0', '1'],       # [unchecked_retval, checked_ret_val]
           },
           {
              "id": "outlier",
@@ -101,9 +96,7 @@
              "description": "Outliers will be replaced with median",
 
              "defaultValue": false,
-             "returnValue": [1, 0],
-
-             "choice": [true, false],
+             "returnValue": ['0', '1'],
           },
           {
              "id": "static",
@@ -112,28 +105,23 @@
              "description": "Subjects will be dropped if they have data for less than static % of periods",
 
              "defaultValue": 0,
-             "returnValue": "NULL",
 
              min: 0,
              max: 100,
              step: 1,
-
-             "choice": "NULL",
           }
         ],
 
         # Preparation step parameters
         [
           {
-             "id": "use_decay",
-             "type": "checkbox",
-             "name": "Apply adstock decay?",
-             "description": "Apply adstock decay?",
+             id: "use_decay",
+             type: "checkbox",
+             name: "Apply adstock decay?",
+             description: "Apply adstock decay?",
 
-             "defaultValue": true,
-             "returnValue": [1, 0],
-
-             "choice": [true, false],
+             defaultValue: true,
+             returnValue: ['0', '1'],
           },
           {
              "id": "decay_bounds",
@@ -154,9 +142,9 @@
              "description": "Can be applied to target variables only or both target variables and factors",
 
              "defaultValue": 0,
-             "returnValue": [0, 1, 2],
 
              "choice": ["None","Semi-log","Log-log"],
+             "returnValue": [0, 1, 2],
           },
           {
              "id": "use_mc",
@@ -165,9 +153,7 @@
              "description": "Apply mean centering?",
 
              "defaultValue": true,
-             "returnValue": [1, 0],
-
-             "choice": [true, false],
+             "returnValue": ['1', '0'],
           }
        ],
 
@@ -180,9 +166,9 @@
              "description": "Options for modeling seasonality",
 
              "defaultValue": 0,
-             "returnValue": [0, 1, 2],
 
              "choice": ["None","Dummy Month Factors","Numeric Sales Factors"],
+             "returnValue": [0, 1, 2],
           },
           {
              "id": "lst_seas",
@@ -191,9 +177,6 @@
              "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
              "defaultValue": "NA",
-             "returnValue": "NULL",
-
-             "choice": "NULL",
           },
           {
              "id": "lst_rand",
@@ -202,9 +185,6 @@
              "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
              "defaultValue": "NA",
-             "returnValue": "NULL",
-
-             "choice": "NULL",
           },
           {
              "id": "covstr",
@@ -213,9 +193,8 @@
              "description": "Options to model random effect interactions",
 
              "defaultValue": 0,
-             "returnValue": ["0","1","2"],
-
              "choice": ["Uncorrelated random slopes","Correlated random slopes","Try both options"],
+             "returnValue": ["0","1","2"],
           },
           {
              "id": "use_stat",
@@ -224,9 +203,9 @@
              "description": "Best model will be selected based on this statistic. These measures should be interpreted in a relative sense only.",
 
              "defaultValue": 0,
-             "returnValue": [1, 2],
 
              "choice": ["Use R-squared","Use AIC (Akaike Information Criterion)"],
+             "returnValue": [1, 2],
           },
           {
              "id": "use_prior",
@@ -235,9 +214,9 @@
              "description": "Interpret priors as % contribution or ROI?",
 
              "defaultValue": 0,
-             "returnValue": ["1","2"],
 
              "choice": ["Use prior channel contribution","Use prior channel ROI"],
+             "returnValue": ["1","2"],
           },
           {
              "id": "lst_prior",
@@ -246,13 +225,10 @@
              "description": "List of prior values",
 
              "defaultValue": "NA",
-             "returnValue": "NULL",
 
              min: 0,
              max: 100,
              step: 1,
-
-             "choice": "NULL",
           },
           {
              "id": "mixnmatch",
@@ -260,10 +236,10 @@
              "name": "Report channel impacts from different models?",
              "description": "Uncheck to ensure all impacts reported from a single model",
 
-             "defaultValue": 0,
-             "returnValue": [1, 0],
+             "defaultValue": 1,
 
-             "choice": [true, false],
+             "choice": [false, true],
+             "returnValue": [0, 1],
           },
           {
              "id": "lst_cost",
@@ -292,9 +268,9 @@
              "description": "Defines what to optimize",
 
              "defaultValue": 0,
-             "returnValue": [1, 2],
 
              "choice": ["Sales Max with Budget Constraint","Cost Min with Sales Target Constraint"],
+             "returnValue": [1, 2],
           },
           {
              "id": "budget_factor",
