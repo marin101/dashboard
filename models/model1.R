@@ -1,4 +1,4 @@
-##################### This code prints the values of command-line parameters for UI Testing ######################
+#!/usr/bin/Rscript
 
 cmdArgs = commandArgs(trailingOnly = TRUE)
 new_session  = cmdArgs[1]
@@ -13,22 +13,20 @@ if (as.integer(run) == 1) {
   geobrand = cmdArgs[7]
   subject = cmdArgs[8]
   period = cmdArgs[9]
-  pstart = cmdArgs[10]
-  pend = cmdArgs[11]
-  datefmt = cmdArgs[12]
-  lst_dim = cmdArgs[13]
-  impute = cmdArgs[14]
-  outlier = cmdArgs[15]
-  static = cmdArgs[16]
-  
+  pbounds = cmdArgs[10]
+  datefmt = cmdArgs[11]
+  lst_dim = cmdArgs[12]
+  impute = cmdArgs[13]
+  outlier = cmdArgs[14]
+  static = cmdArgs[15]
+
   print(paste("Read parameters: ",
               'file1=', file1,
               'depvar=', depvar,
               'geobrand=', geobrand,
               'subject=', subject,
               'period=', period,
-              'pstart=', pstart,
-              'pend=', pend,
+              'pbounds=', pbounds,
               'datefmt=', datefmt,
               'lst_dim=', lst_dim,
               'impute=', impute,
@@ -37,20 +35,18 @@ if (as.integer(run) == 1) {
               ))
 
 } else if (as.integer(run) == 2) {
-    
+
   use_decay = cmdArgs[5]
-  min_decay = cmdArgs[6]
-  max_decay = cmdArgs[7]
-  use_log = cmdArgs[8]
-  use_mc = cmdArgs[9]
-  
+  decay_bounds = cmdArgs[6]
+  use_log = cmdArgs[7]
+  use_mc = cmdArgs[8]
+
   print(paste("Prep parameters: ",
               'use_decay=', use_decay,
-              'min_decay=', min_decay,
-              'max_decay=', max_decay,
+              'min_decay=', decay_bounds,
               'use_mc=', use_mc
   ))
-    
+
 } else if (as.integer(run) == 3) {
 
   use_geobrand = cmdArgs[5]
@@ -67,7 +63,7 @@ if (as.integer(run) == 1) {
   use_trendseas = cmdArgs[16]
   lst_cost = cmdArgs[17]
   margin = cmdArgs[18]
-    
+
   print(paste("Model parameters: ",
               'use_geobrand=', use_geobrand,
               'use_seas=', use_seas,
@@ -86,7 +82,7 @@ if (as.integer(run) == 1) {
     ))
 
 } else if (as.numeric(run) == 4) {
-    
+
   optim_goal = cmdArgs[5]
   budget_factor = cmdArgs[6]
   sales_factor = cmdArgs[7]

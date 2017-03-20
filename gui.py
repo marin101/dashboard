@@ -65,17 +65,16 @@ def run_model():
     model = json.loads(request.form["model"])
 
     model_call = [
+        "Rscript",
         os.path.join(MODELS_DIRECTORY, model + ".R"),
 
-        json.loads(request.form["step"]),
-        json.loads(request.form["newSession"]),
-        json.loads(request.form["saveSession"]),
-        json.loads(request.form["sessionID"]),
-
-        json.loads(request.form["parameters"])
+        str(json.loads(request.form["newSession"])),
+        str(json.loads(request.form["saveSession"])),
+        str(json.loads(request.form["sessionID"])),
+        str(json.loads(request.form["step"]))
     ]
-#    model_call.extend(map(lambda x: str(x), params))
 
+    model_call.extend(map(lambda x: str(x), json.loads(request.form["parameters"])))
 
     result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
     return json.dumps(result.stdout.readlines());

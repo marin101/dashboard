@@ -227,6 +227,7 @@ function Param(props) {
             return <RangeParam parameter={props.param} dataSet={props.dataSet}
                 onChange={props.onChange} disabled={props.disabled}/>;
         case "text":
+        case "dragDrop":
         default:
             return <TextParam parameter={props.param} onChange={props.onChange}/>;
     }
@@ -271,7 +272,7 @@ class ParametersDialog extends React.Component {
             case "dropdown":
             case "dropdownEdit":
                 // TODO: This check is unnecessary after finishing dragDrop
-                if (param.value == null) return '';
+                if (param.value == null || param.value == '') return '';
                 return param.value.join(', ');
 
             case "text":
