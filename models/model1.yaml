@@ -5,7 +5,7 @@
     # Order of steps must correspond with the order of parameter lists
     steps: [
         {
-            id: "read",
+            id: read,
             name: "Read",
             description: "Description of this step"
         },
@@ -40,18 +40,32 @@
              type: "dragDrop",
              name: "Target variable",
              description: "What you want to model",
+
+             size: 1
           },
           {
              "id": "subject",
              "type": "dragDrop",
              "name": "Subject",
              "description": "Level at which impacts will be reported",
+
+             size: 1
           },
           {
              "id": "period",
              "type": "dragDrop",
              "name": "Period",
              "description": "Column which represents time period",
+
+             size: 1
+          },
+          {
+             "id": "geobrand",
+             "type": "dragDrop",
+             "name": "Geo-Brand",
+             "description": "Column that represents the Geography",
+
+             size: 1
           },
           {
              "id": "pbounds",
@@ -59,8 +73,25 @@
              "name": "Model start period",
              "description": "Periods prior to this will not be included in the model",
 
-             source: period,
+             source: "period"
           },
+          {
+             "id": "drop_period",
+             "type": "dropdown",
+             "name": "Drop Period which we don't want to Model",
+             "description": "Select Periods to drop_period",
+
+             source: "period",
+          },
+          {
+             id: "lst_cost",
+             type: "dropdownEdit",
+             name: "Enter per unit channel costs",
+             description: "Required for calculating ROI",
+
+             defaultValue: 1
+          },
+
           {
              "id": "datefmt",
              "type": "radio",           # Mutually exclusive checkboxes
@@ -78,7 +109,9 @@
              "name": "Descriptor columns",
              "description": "These will NOT be used for modeling",
 
-             "defaultValue": "NA",
+             "defaultValue": '',
+
+             # When size is not given for a dragDrop, size is arbitrary
           },
           {
              id: "impute",
@@ -106,9 +139,13 @@
 
              "defaultValue": 0,
 
+            unit: '%',
+
              min: 0,
              max: 100,
-             step: 1,
+             step: 10,
+
+             scale: 100  # Displayed value is divided by scale when sent to the console
           }
         ],
 
@@ -129,11 +166,13 @@
              "name": "Minimum decay rate",
              "description": "All decay rates starting from this value will be modeled",
 
-             "defaultValue": [0.5, 0.8],
+             "defaultValue": [50, 80],
 
              min: 0,
              max: 100,
              step: 1,
+
+             scale: 100
           },
           {
              "id": "use_log",
@@ -153,12 +192,20 @@
              "description": "Apply mean centering?",
 
              "defaultValue": true,
-             "returnValue": ['1', '0'],
+             "returnValue": ['0', '1'],
           }
        ],
 
         # Model step parameters
         [
+         {
+             "id": "use_geobrand",
+             "type": "dropdown",
+             "name": "Geo-Brand Model",
+             "description": "Select Geography to Model",
+
+             source: geobrand,
+          },
           {
              "id": "use_seas",
              "type": "radio",
@@ -176,7 +223,7 @@
              "name": "Select periods to control for",
              "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
-             "defaultValue": "NA",
+             "defaultValue": '',
           },
           {
              "id": "lst_rand",
@@ -184,7 +231,7 @@
              "name": "Variables to randomize",
              "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
-             "defaultValue": "NA",
+             "defaultValue": '',
           },
           {
              "id": "covstr",
@@ -220,15 +267,11 @@
           },
           {
              "id": "lst_prior",
-             "type": "slider",
+             "type": "dropdownEdit",
              "name": "List of prior values",
              "description": "List of prior values",
 
-             "defaultValue": "NA",
-
-             min: 0,
-             max: 100,
-             step: 1,
+             "defaultValue": ''
           },
           {
              "id": "mixnmatch",
@@ -238,16 +281,32 @@
 
              "defaultValue": 1,
 
-             "choice": [false, true],
+             "choice": ["false", "true"],
              "returnValue": [0, 1],
           },
           {
-             "id": "lst_cost",
-             "type": "text",
-             "name": "Enter per unit channel costs",
-             "description": "Required for calculating ROI",
+             "id": "drop_period",
+             "type": "dropdown",
+             "name": "Drop Period which we don't want to Model",
+             "description": "Select Periods to drop_period",
 
-             "defaultValue": "NULL"
+             source: "period",
+          },
+          {
+             "id": "drop_subject",
+             "type": "dropdown",
+             "name": "Drop Subject which we don't want to Model",
+             "description": "Select Subject to Model",
+
+             source: subject,
+          },
+          {
+             id: "lst_cost",
+             type: "dropdownEdit",
+             name: "Enter per unit channel costs",
+             description: "Required for calculating ROI",
+
+             defaultValue: 1
           },
           {
              "id": "margin",
@@ -280,9 +339,13 @@
 
              "defaultValue": 1,
 
+            unit: '%',
+
              min: 0,
              max: 100,
              step: 1,
+
+             scale: 100
           },
           {
              "id": "sales_factor",
@@ -292,10 +355,15 @@
 
              "defaultValue": 1,
 
+            unit: '%',
+
              min: 0,
              max: 100,
-             step: 1
+             step: 1,
+
+             scale: 100
           }
         ]
     ]
 }
+

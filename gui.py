@@ -89,12 +89,17 @@ def upload_CSV_file():
 
 @app.route("/fetch_CSV_column/", methods=["POST"])
 def fetch_CSV_column():
+    unique = json.loads(request.form.get("unique", json.dumps(False)))
     CSV_fieldname = json.loads(request.form["fieldname"])
 
     column_values = []
     with open(os.path.join(USERS_DIRECTORY, "user.csv")) as f:
         for row in csv.DictReader(f):
-            column_values.append(row[CSV_fieldname])
+            value = row[CSV_fieldname]
+
+            # TODO: Optimize
+            if not unique or value not in column_values:
+                column_values.append(value)
 
     return json.dumps(column_values)
 
