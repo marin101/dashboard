@@ -217,14 +217,14 @@ function RangeParam(props) {
     const isInteger = Number.isInteger(min) && Number.isInteger(step);
 
     /* Construct marks object */
-    for (let i = min; i <= max; i += markDist) {
-        const val = isInteger ? Math.round(i) : i;
-
-        if (props.dataSet == null) {
+    if (props.dataSet == null) {
+        for (let i = min; i <= max; i += markDist) {
+            const val = isInteger ? Math.round(i) : i;
             marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
-        } else {
-            marks[val] = props.dataSet[val] + unit;
         }
+    } else {
+        marks[min] = props.dataSet[min] + unit;
+        marks[max] = props.dataSet[max] + unit;
     }
 
     let lowValue, highValue;
@@ -255,6 +255,7 @@ function RangeParam(props) {
             </div>
 
             <Range count={2} disabled={disabled} min={min} max={max} step={step}
+                dots={!disabled && props.dataSet != null}
                 marks={marks} value={value} allowCross={false} style={rangeStyle}
                 onChange={newVal => {props.onChange(newVal)}}/>
         </Form.Field>
