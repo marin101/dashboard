@@ -168,6 +168,9 @@
 
              "defaultValue": [50, 80],
 
+            control: "use_decay",  # Specifies the checkbox parameter
+                                   # which enables/disables this parameter
+
              min: 0,
              max: 100,
              step: 1,

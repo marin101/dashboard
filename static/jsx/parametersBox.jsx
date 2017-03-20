@@ -222,7 +222,7 @@ function Param(props) {
             return <SliderParam parameter={props.param} onChange={props.onChange}/>;
         case "range":
             return <RangeParam parameter={props.param} dataSet={props.dataSet}
-                onChange={props.onChange}/>;
+                onChange={props.onChange} disabled={props.disabled}/>;
         case "text":
         default:
             return <TextParam parameter={props.param} onChange={props.onChange}/>;
@@ -244,15 +244,31 @@ class ParametersDialog extends React.Component {
     }
 
     runModel() {
-        const params = this.props.params.map(param => {
+        const stepIdx = this.props.step.index;
+
+        const params = this.props.params[stepIdx].map(param => {
             switch (param.type) {
             case "range":
+                if (param.scale != null) {
+                    return param.value.map(val => val / param.scale).join(', ');
+                }
+
+                return param.value.join(', ');
+
             case "slider":
                 return (param.scale != null) ? param.value / param.scale : param.value;
+
             case "radio":
                 return param.returnValue[param.value];
+
             case "checkbox":
                 return param.value ? param.returnValue[0] : param.returnValue[1];
+
+            case "dropdown":
+            case "dropdownEdit":
+                return param.value.join(', ');
+
+            case "text":
             default:
                 return param.value;
             }
@@ -318,7 +334,12 @@ class ParametersDialog extends React.Component {
                 <Modal.Content>
                     <Form>
                         {stepParams != null && stepParams.map((param, idx) => {
-                            let dataSet;
+                            let disabled = false, dataSet;
+
+                            if (param.control != null) {
+                                const controlParam = stepParams.find(p => p.id == param.control);
+                                disabled = !controlParam.value;
+                            }
 
                             if (param.source != null) {
                                 const CSVParams = this.props.params[0];
@@ -333,7 +354,7 @@ class ParametersDialog extends React.Component {
 
                             return (
                                 <Param onChange={this.props.onChange.bind(this, stepIdx, idx)}
-                                    key={idx} param={param} dataSet={dataSet}
+                                    key={idx} param={param} dataSet={dataSet} disabled={disabled}
                                 />
                             );
                         })}

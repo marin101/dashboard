@@ -5,7 +5,10 @@ import React from "react";
 function TextParam(props) {
     let {name, description, value} = props.parameter;
 
-    if (value == null) value = '';
+    if (value == null) {
+        props.onChange('');
+        value = '';
+    }
 
     return (
         <Form.Field>
@@ -59,7 +62,10 @@ function RadioParam(props) {
 function DropdownParam(props) {
     let {name, description, value} = props.parameter;
 
-    if (value == null) value = [];
+    if (value == null) {
+        props.onChange([]);
+        value = [];
+    }
 
     let dropdownOptions = [];
     if (props.options != null) {
@@ -93,6 +99,8 @@ function DropdownEditParam(props) {
         for (let i = 0; i < props.options.length; i++) {
             value.push(props.parameter.defaultValue);
         }
+
+        props.onChange(value);
     }
 
     let dropdownOptions = [];
@@ -184,14 +192,17 @@ function RangeParam(props) {
     if (unit == null) unit = '';
 
     /* Range is disabled when dataSet was expected but not given */
-    const disabled = props.parameter.source != null && props.dataSet == null;
+    const disabled = props.disabled || (props.parameter.source != null && props.dataSet == null);
 
     if (props.dataSet != null) {
         max = props.dataSet.length - 1;
         min = 0;
         step = 1;
 
-        if (value == null) value = [min, max];
+        if (value == null) {
+            value = [min, max];
+            props.onChange(value);
+        }
     } else if (disabled && value == null) {
         value = [0, 0];
     }
