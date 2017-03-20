@@ -1,28 +1,28 @@
 {
-    name: "Name of the module",
-    description: "Description of the module",
+    name: "Linear Mixed Effects",
+    description: "Can be used for marketing mix model and similar applications",
 
     # Order of steps must correspond with the order of parameter lists
     steps: [
         {
             id: read,
-            name: "Read",
-            description: "Description of this step"
+            name: "Data Read",
+            description: "Read your data file and look at basic diagnostics"
         },
         {
             id: "prep",
-            name: "Preparation",
-            description: "Description of this step"
+            name: "Data Preparation",
+            description: "Prepare your modeling data and apply variable transformations"
         },
         {
             id: "model",
-            name: "Model",
-            description: "Description of this step"
+            name: "Run Model",
+            description: "Run linear mixed effects models and report ROI from the best model"
         },
         {
             id: "optim",
             name: "Optimization",
-            description: "Description of this step"
+            description: "Top-down channel optimization for different scenarios"
         }
     ],
 
@@ -47,7 +47,7 @@
              "id": "subject",
              "type": "dragDrop",
              "name": "Subject",
-             "description": "Level at which impacts will be reported",
+             "description": "Level at which random effects will be reported",
 
              size: 1
           },
@@ -63,7 +63,7 @@
              "id": "geobrand",
              "type": "dragDrop",
              "name": "Geo-Brand",
-             "description": "Column that represents the Geography",
+             "description": "name of a column that represents a Brand or Geography",
 
              size: 1
           },
@@ -109,7 +109,7 @@
              "name": "Descriptor columns",
              "description": "These will NOT be used for modeling",
 
-             "defaultValue": '',
+             "defaultValue": [''],
 
              # When size is not given for a dragDrop, size is arbitrary
           },
@@ -205,9 +205,9 @@
              "id": "use_geobrand",
              "type": "dropdown",
              "name": "Geo-Brand Model",
-             "description": "Select Geography to Model",
+             "description": "Brands/Geographies to analyze (leave blank to include ALL)",
 
-             source: geobrand,
+             source: "geobrand",
           },
           {
              "id": "use_seas",
@@ -227,6 +227,7 @@
              "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
              "defaultValue": '',
+             source: "period",
           },
           {
              "id": "lst_rand",
@@ -301,7 +302,7 @@
              "name": "Drop Subject which we don't want to Model",
              "description": "Select Subject to Model",
 
-             source: subject,
+             source: "subject",
           },
           {
              id: "lst_cost",
@@ -344,9 +345,9 @@
 
             unit: '%',
 
-             min: 0,
-             max: 100,
-             step: 1,
+             min: -50,
+             max: 50,
+             step: 10,
 
              scale: 100
           },
@@ -360,9 +361,9 @@
 
             unit: '%',
 
-             min: 0,
-             max: 100,
-             step: 1,
+             min: -50,
+             max: 50,
+             step: 10,
 
              scale: 100
           }

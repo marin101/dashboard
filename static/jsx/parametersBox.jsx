@@ -13,11 +13,6 @@ const CSVFieldSource = {
     beginDrag(props) {
         return {fieldname: props.fieldname};
     },
-    endDrag(props, monitor) {
-        if (monitor.didDrop()) {
-            props.removeCSVField(props.fieldname);
-        }
-    }
 }
 
 function CSVField(props) {
@@ -48,20 +43,23 @@ function CSVFieldTargetContainer(props) {
         display: "flex"
     };
 
+    const {name, description, value=[]} = props.parameter;
+
     return props.connectDropTarget(
         <div style={style}>
             <div style={{"flex": 1}}>
-                <CSVFieldWrapper removeCSVField={props.removeCSVField}
-                    fieldname={props.parameter.value}/>
+                {value.map((item, idx) =>
+                    <CSVFieldWrapper key={idx} fieldname={item}/>
+                )}
             </div>
 
             <div style={{"textAlign": "center", "flex": 1}}>
                 &rArr;
             </div>
 
-            <Popup on="hover" content={props.parameter.description} trigger={
+            <Popup on="hover" content={description} trigger={
                 <div style={{"textAlign": "right", "flex": 1}}>
-                    {props.parameter.name}
+                    {name}
                 </div>
             }/>
         </div>
@@ -72,11 +70,17 @@ const CSVFieldTarget = {
     drop: (props, monitor) => {
         const fieldname = monitor.getItem().fieldname;
 
-        props.onChange(fieldname);
+        const {value=[], size} = props.parameter;
+        const fields = value.slice();
 
-        if (props.parameter.value != '') {
-            props.addToCSVFieldPool(props.parameter.value);
+        if (size != null && size <= value.length) {
+            props.addToCSVFieldPool(fields.pop());
         }
+
+        fields.push(fieldname);
+        props.onChange(fields);
+
+        props.removeCSVField(fieldname);
     }
 };
 
@@ -126,9 +130,9 @@ class CSVFieldsMappingDialog extends React.Component {
     }
 
     removeCSVField(fieldnameToRemove) {
-        const CSVFields = this.props.CSVFieldsPool.filter(fieldname => {
-            if (fieldnameToRemove != fieldname) return fieldname;
-        });
+        const CSVFields = this.props.CSVFieldsPool.filter(fieldname =>
+            fieldnameToRemove != fieldname
+        );
 
         this.props.updateCSVFields(CSVFields);
     }
@@ -149,8 +153,8 @@ class CSVFieldsMappingDialog extends React.Component {
                 <Modal.Header>
                     {this.props.step.name}
 
-                    <Input placeholder={csvFile.description} value={csvFile.value} size="mini"
-                        style={{"float": "right"}}>
+                    <Input placeholder={csvFile.description} style={{"float": "right"}}
+                        size="mini" value={(csvFile.value != null) ? csvFile.value : ''}>
                         <input disabled/>
 
                         <span style={{display: "none"}}>
@@ -168,8 +172,7 @@ class CSVFieldsMappingDialog extends React.Component {
                         <Segment.Group horizontal>
                             <Segment loading={this.props.CSVLoading}>
                                 {this.props.CSVFieldsPool.map((fieldname, idx) =>
-                                    <CSVFieldWrapper key={idx} removeCSVField={this.removeCSVField}
-                                        fieldname={fieldname}/>
+                                    <CSVFieldWrapper key={idx} fieldname={fieldname}/>
                                 )}
                             </Segment>
 
@@ -264,8 +267,11 @@ class ParametersDialog extends React.Component {
             case "checkbox":
                 return param.value ? param.returnValue[0] : param.returnValue[1];
 
+            case "dragDrop":
             case "dropdown":
             case "dropdownEdit":
+                // TODO: This check is unnecessary after finishing dragDrop
+                if (param.value == null) return '';
                 return param.value.join(', ');
 
             case "text":
@@ -347,7 +353,7 @@ class ParametersDialog extends React.Component {
                                 const srcParam = CSVParams.find(p => p.id == param.source);
                                 const srcField = (srcParam != null) ? srcParam.value : null;
 
-                                dataSet = this.getCSVColumnValues(srcField);
+                                dataSet = this.getCSVColumnValues(srcField[0]);
                             } else if (param.type == "dropdownEdit") {
                                 dataSet = this.props.CSVFieldsPool;
                             }
@@ -397,7 +403,11 @@ class ParametersBox extends React.Component {
             /* Controls whether parameters dialog should be open */
             isParamsDialogOpen: false,
 
-            errorMsg: null
+            errorMsg: null,
+
+            newSession: 0,
+            saveSession: 0,
+            sessionID: null
 		};
 
         this.fetchModelsMetadata = this.fetchModelsMetadata.bind(this);
@@ -438,7 +448,7 @@ class ParametersBox extends React.Component {
 
             //TODO: Move from here
             const parameters = description.parameters.map(stepParams => {
-                stepParams.map(param => (param.defaultValue != null) ? param.defaultValue : '');
+                stepParams.map(param => param.defaultValue);
             });
 
             const newModelsInfo = Object.assign({}, this.state.modelsInfo);
@@ -495,7 +505,12 @@ class ParametersBox extends React.Component {
 
         const modelForm = new FormData();
         modelForm.set("model", JSON.stringify(modelId));
-        modelForm.set("parameters", JSON.stringify([stepIdx, ...params]));
+
+        modelForm.set("step", stepIdx);
+        modelForm.set("sessionID", JSON.stringify(this.state.sessionID));
+        modelForm.set("newSession", JSON.stringify(this.state.newSession));
+        modelForm.set("saveSession", JSON.stringify(this.state.saveSession));
+        modelForm.set("parameters", JSON.stringify(params));
 
 		runModelRequest.open("POST", "/run_model/");
 		runModelRequest.send(modelForm);

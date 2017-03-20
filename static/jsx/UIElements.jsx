@@ -13,7 +13,7 @@ function TextParam(props) {
     return (
         <Form.Field>
             <Popup on="hover" content={description} trigger={
-                <label> {name}: </label>
+                <label> {name} </label>
             }/>
 
             <Input focus placeholder={description} value={value}
@@ -40,7 +40,7 @@ function RadioParam(props) {
     return (
         <Form.Field>
             <Popup on="hover" content={props.parameter.description} trigger={
-                <label> {props.parameter.name}: </label>
+                <label> {props.parameter.name} </label>
             }/>
 
             <Form.Group>
@@ -79,7 +79,7 @@ function DropdownParam(props) {
     return (
         <Form.Field>
             <Popup on="hover" content={description} trigger={
-                <label> {name}: </label>
+                <label> {name} </label>
             }/>
 
             <Dropdown fluid search selection multiple value={value}
@@ -126,7 +126,7 @@ function DropdownEditParam(props) {
     return (
         <Form.Field>
             <Popup on="hover" content={description} trigger={
-                <label> {name}: </label>
+                <label> {name} </label>
             }/>
 
             <Dropdown fluid search closeOnChange={false} selection value=''
@@ -165,7 +165,7 @@ function SliderParam(props) {
     return (
         <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
             <Popup on="hover" content={description} trigger={
-                <label style={{"display": "inline"}}> {name}: </label>
+                <label style={{"display": "inline"}}> {name} </label>
             }/>
 
             <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
@@ -245,7 +245,7 @@ function RangeParam(props) {
     return (
         <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
             <Popup on="hover" content={description} trigger={
-                <label style={{"display": "inline"}}> {name}: </label>
+                <label style={{"display": "inline"}}> {name} </label>
             }/>
 
             <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>

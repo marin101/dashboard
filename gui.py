@@ -63,10 +63,18 @@ def fetch_model_description():
 @app.route("/run_model/", methods=["POST"])
 def run_model():
     model = json.loads(request.form["model"])
-    params = json.loads(request.form["parameters"])
 
-    model_call = [os.path.join(MODELS_DIRECTORY, model + ".R")]
-    model_call.extend(map(lambda x: str(x), params))
+    model_call = [
+        os.path.join(MODELS_DIRECTORY, model + ".R"),
+
+        json.loads(request.form["step"]),
+        json.loads(request.form["newSession"]),
+        json.loads(request.form["saveSession"]),
+        json.loads(request.form["sessionID"]),
+
+        json.loads(request.form["parameters"])
+    ]
+#    model_call.extend(map(lambda x: str(x), params))
 
 
     result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
