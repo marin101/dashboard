@@ -29,17 +29,27 @@
     parameters: [
     [
         # Read step parameters
+        # file1
         {
             id: "file1",
             type: "file",
             name: "Input data",
             description: "Upload input data in CSV format",
           },
+
           {
              id: "depvar",
              type: "dragDrop",
              name: "Target variable",
              description: "What you want to model",
+
+             size: 1
+          },
+          {
+             "id": "geobrand",
+             "type": "dragDrop",
+             "name": "Geo-Brand",
+             "description": "name of a column that represents a Brand or Geography",
 
              size: 1
           },
@@ -59,39 +69,15 @@
 
              size: 1
           },
-          {
-             "id": "geobrand",
-             "type": "dragDrop",
-             "name": "Geo-Brand",
-             "description": "name of a column that represents a Brand or Geography",
 
-             size: 1
-          },
           {
              "id": "pbounds",
              "type": "range",
-             "name": "Model start period",
-             "description": "Periods prior to this will not be included in the model",
+             "name": "Analysis period",
+             "description": "Periods within this range will be included in the model",
 
              source: "period"
           },
-          {
-             "id": "drop_period",
-             "type": "dropdown",
-             "name": "Drop Period which we don't want to Model",
-             "description": "Select Periods to drop_period",
-
-             source: "period",
-          },
-          {
-             id: "lst_cost",
-             type: "dropdownEdit",
-             name: "Enter per unit channel costs",
-             description: "Required for calculating ROI",
-
-             defaultValue: 1
-          },
-
           {
              "id": "datefmt",
              "type": "radio",           # Mutually exclusive checkboxes
@@ -106,10 +92,10 @@
           {
              "id": "lst_dim",
              "type": "dragDrop",
-             "name": "Descriptor columns",
+             "name": "Columns to ignore",
              "description": "These will NOT be used for modeling",
 
-             "defaultValue": [''],
+             "defaultValue": [],
 
              # When size is not given for a dragDrop, size is arbitrary
           },
@@ -134,8 +120,8 @@
           {
              "id": "static",
              "type": "slider",
-             "name": "Set the static",
-             "description": "Subjects will be dropped if they have data for less than static % of periods",
+             "name": "Subject inclusion threshold",
+             "description": "Subjects will be dropped if they have data for fewer % of periods",
 
              "defaultValue": 0,
 
@@ -163,8 +149,8 @@
           {
              "id": "decay_bounds",
              "type": "range",
-             "name": "Minimum decay rate",
-             "description": "All decay rates starting from this value will be modeled",
+             "name": "Minimum and maximum decay rate",
+             "description": "All decay rates within this range will be modeled",
 
              "defaultValue": [50, 80],
 
@@ -173,7 +159,7 @@
 
              min: 0,
              max: 100,
-             step: 1,
+             step: 10,
 
              scale: 100
           },
@@ -181,7 +167,7 @@
              "id": "use_log",
              "type": "radio",
              "name": "Apply log transformation?",
-             "description": "Can be applied to target variables only or both target variables and factors",
+             "description": "Target variables only or both target variables and factors?",
 
              "defaultValue": 0,
 
@@ -204,8 +190,8 @@
          {
              "id": "use_geobrand",
              "type": "dropdown",
-             "name": "Geo-Brand Model",
-             "description": "Brands/Geographies to analyze (leave blank to include ALL)",
+             "name": "Brands/Geographies to analyze",
+             "description": "Leave blank to analyze ALL Brands/Geographies",
 
              source: "geobrand",
           },
@@ -291,18 +277,29 @@
           {
              "id": "drop_period",
              "type": "dropdown",
-             "name": "Drop Period which we don't want to Model",
-             "description": "Select Periods to drop_period",
+             "name": "Drop Periods",
+             "description": "These periods will be excluded from the model (select one or more)",
 
              source: "period",
           },
           {
              "id": "drop_subject",
              "type": "dropdown",
-             "name": "Drop Subject which we don't want to Model",
-             "description": "Select Subject to Model",
+             "name": "Drop Subjects",
+             "description": "These subjects will be excluded from the model (provide a comma-separated list)",
 
              source: "subject",
+          },
+          {
+             "id": "use_trendseas",
+             "type": "radio",
+             "name": "Model with and without Trend/Seasonality?",
+             "description": "Check to run models with and without trend and seasonality (default setting INCLUDES both)",
+
+             "defaultValue": 0,
+
+             "choice": ["use trend and seasonality", "try with and without trend/seas"],
+             "returnValue": [0, 1],
           },
           {
              id: "lst_cost",

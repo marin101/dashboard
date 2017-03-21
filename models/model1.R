@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+##################### This code prints the values of command-line parameters for UI Testing ######################
 
 cmdArgs = commandArgs(trailingOnly = TRUE)
 new_session  = cmdArgs[1]
@@ -19,34 +19,35 @@ if (as.integer(run) == 1) {
   impute = cmdArgs[13]
   outlier = cmdArgs[14]
   static = cmdArgs[15]
-
+  
   print(paste("Read parameters: ",
-              'file1=', file1,
-              'depvar=', depvar,
-              'geobrand=', geobrand,
-              'subject=', subject,
-              'period=', period,
-              'pbounds=', pbounds,
-              'datefmt=', datefmt,
-              'lst_dim=', lst_dim,
-              'impute=', impute,
-              'outlier=', outlier,
-              'static=', static
+              'file1 = ', file1,
+              'depvar = ', depvar,
+              'geobrand = ', geobrand,
+              'subject = ', subject,
+              'period = ', period,
+              'pbounds = ', pbounds,
+              'datefmt = ', datefmt,
+              'lst_dim = ', lst_dim,
+              'impute = ', impute,
+              'outlier = ', outlier,
+              'static = ', static
               ))
 
 } else if (as.integer(run) == 2) {
-
+    
   use_decay = cmdArgs[5]
   decay_bounds = cmdArgs[6]
   use_log = cmdArgs[7]
   use_mc = cmdArgs[8]
-
+  
   print(paste("Prep parameters: ",
-              'use_decay=', use_decay,
-              'min_decay=', decay_bounds,
-              'use_mc=', use_mc
+              'use_decay = ', use_decay,
+              'decay_bounds = ', decay_bounds,
+              'use_log = ', use_log,
+              'use_mc = ', use_mc
   ))
-
+    
 } else if (as.integer(run) == 3) {
 
   use_geobrand = cmdArgs[5]
@@ -63,34 +64,34 @@ if (as.integer(run) == 1) {
   use_trendseas = cmdArgs[16]
   lst_cost = cmdArgs[17]
   margin = cmdArgs[18]
-
+    
   print(paste("Model parameters: ",
-              'use_geobrand=', use_geobrand,
-              'use_seas=', use_seas,
-              'lst_seas=', lst_seas,
-              'lst_rand=', lst_rand,
-              'covstr=', covstr,
-              'use_stat=', use_stat,
-              'use_prior=', use_prior,
-              'lst_prior=', lst_prior,
-              'mixnmatch=', mixnmatch,
-              'drop_period=', drop_period,
-              'drop_subject=', drop_subject,
-              'use_trendseas=', use_trendseas,
-              'lst_cost=', lst_cost,
-              'margin=', margin
+              'use_geobrand = ', use_geobrand,
+              'use_seas = ', use_seas,
+              'lst_seas = ', lst_seas,
+              'lst_rand = ', lst_rand,
+              'covstr = ', covstr,
+              'use_stat = ', use_stat,
+              'use_prior = ', use_prior,
+              'lst_prior = ', lst_prior,
+              'mixnmatch = ', mixnmatch,
+              'drop_period = ', drop_period,
+              'drop_subject = ', drop_subject,
+              'use_trendseas = ', use_trendseas,
+              'lst_cost = ', lst_cost,
+              'margin = ', margin
     ))
 
 } else if (as.numeric(run) == 4) {
-
+    
   optim_goal = cmdArgs[5]
   budget_factor = cmdArgs[6]
   sales_factor = cmdArgs[7]
 
   print(paste("Prep parameters: ",
-              'optim_goal=', optim_goal,
-              'budget_factor=', budget_factor,
-              'sales_factor=', sales_factor
+              'optim_goal = ', optim_goal,
+              'budget_factor = ', budget_factor,
+              'sales_factor = ', sales_factor
   ))
 
 }
