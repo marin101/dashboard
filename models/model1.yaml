@@ -208,7 +208,7 @@
           },
           {
              "id": "lst_seas",
-             "type": "dragDrop",
+             "type": "dropdown",
              "name": "Select periods to control for",
              "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
@@ -217,7 +217,7 @@
           },
           {
              "id": "lst_rand",
-             "type": "dragDrop",
+             "type": "dropdown",
              "name": "Variables to randomize",
              "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
