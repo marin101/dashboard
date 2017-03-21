@@ -266,7 +266,7 @@ class ParametersDialog extends React.Component {
                 return param.returnValue[param.value];
 
             case "checkbox":
-                return param.value ? param.returnValue[0] : param.returnValue[1];
+                return param.value ? param.returnValue[1] : param.returnValue[0];
 
             case "dragDrop":
             case "dropdown":
