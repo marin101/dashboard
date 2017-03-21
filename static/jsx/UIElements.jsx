@@ -173,7 +173,7 @@ function SliderParam(props) {
             </div>
 
             <Slider min={min} max={max} step={step} marks={marks} value={value}
-                style={sliderStyle}
+                style={sliderStyle} disabled={props.disabled}
                 onChange={newValue => {
                     // TODO: Remove after bug [value > max] is resolved
                     if (newValue <= max) {

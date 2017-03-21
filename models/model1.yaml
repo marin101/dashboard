@@ -154,8 +154,8 @@
 
              "defaultValue": [50, 80],
 
-            control: "use_decay",  # Specifies the checkbox parameter
-                                   # which enables/disables this parameter
+            # Specifies the parameter which enables/disables this parameter
+            control: {id: use_decay, enableValue: true},
 
              min: 0,
              max: 100,
@@ -212,8 +212,8 @@
              "name": "Select periods to control for",
              "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
-             "defaultValue": '',
-             source: "period",
+             "defaultValue": [],
+             source: "period"
           },
           {
              "id": "lst_rand",
@@ -221,7 +221,9 @@
              "name": "Variables to randomize",
              "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
-             "defaultValue": '',
+             "defaultValue": [],
+
+            source: "UNUSED_CSV_FIELDNAMES"
           },
           {
              "id": "covstr",
@@ -261,7 +263,8 @@
              "name": "List of prior values",
              "description": "List of prior values",
 
-             "defaultValue": ''
+             "defaultValue": '',
+             source: "UNUSED_CSV_FIELDNAMES"
           },
           {
              "id": "mixnmatch",
@@ -280,7 +283,7 @@
              "name": "Drop Periods",
              "description": "These periods will be excluded from the model (select one or more)",
 
-             source: "period",
+             source: "period"
           },
           {
              "id": "drop_subject",
@@ -288,7 +291,7 @@
              "name": "Drop Subjects",
              "description": "These subjects will be excluded from the model (provide a comma-separated list)",
 
-             source: "subject",
+             source: "subject"
           },
           {
              "id": "use_trendseas",
@@ -299,7 +302,7 @@
              "defaultValue": 0,
 
              "choice": ["use trend and seasonality", "try with and without trend/seas"],
-             "returnValue": [0, 1],
+             "returnValue": [0, 1]
           },
           {
              id: "lst_cost",
@@ -307,7 +310,8 @@
              name: "Enter per unit channel costs",
              description: "Required for calculating ROI",
 
-             defaultValue: 1
+             defaultValue: 1,
+             source: "UNUSED_CSV_FIELDNAMES"
           },
           {
              "id": "margin",
@@ -340,6 +344,8 @@
 
              "defaultValue": 1,
 
+            control: {id: optim_goal, enableValue: 0},
+
             unit: '%',
 
              min: -50,
@@ -355,6 +361,8 @@
              "description": "Expands the Sales Target Constraint to go beyond current sales",
 
              "defaultValue": 1,
+
+            control: {id: optim_goal, enableValue: 1},
 
             unit: '%',
 

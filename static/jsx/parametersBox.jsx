@@ -222,7 +222,8 @@ function Param(props) {
             return <DropdownEditParam parameter={props.param} options={props.dataSet}
                 onChange={props.onChange}/>;
         case "slider":
-            return <SliderParam parameter={props.param} onChange={props.onChange}/>;
+            return <SliderParam parameter={props.param} disabled={props.disabled}
+                onChange={props.onChange}/>;
         case "range":
             return <RangeParam parameter={props.param} dataSet={props.dataSet}
                 onChange={props.onChange} disabled={props.disabled}/>;
@@ -346,19 +347,21 @@ class ParametersDialog extends React.Component {
                             let disabled = false, dataSet;
 
                             if (param.control != null) {
-                                const controlParam = stepParams.find(p => p.id == param.control);
-                                disabled = !controlParam.value;
+                                const controlParam = stepParams.find(p => p.id == param.control.id);
+                                disabled = param.control.enableValue != controlParam.value;
                             }
 
                             if (param.source != null) {
                                 const CSVParams = this.props.params[0];
 
                                 const srcParam = CSVParams.find(p => p.id == param.source);
-                                const srcField = (srcParam != null) ? srcParam.value : null;
 
-                                dataSet = this.getCSVColumnValues(srcField[0]);
-                            } else if (param.type == "dropdownEdit") {
-                                dataSet = this.props.CSVFieldsPool;
+                                if (srcParam == "UNUSED_CSV_FIELDNAMES") {
+                                    const srcField = (srcParam != null) ? srcParam.value : null;
+                                    dataSet = this.getCSVColumnValues(srcField[0]);
+                                } else {
+                                    dataSet = this.props.CSVFieldsPool;
+                                }
                             }
 
                             return (
