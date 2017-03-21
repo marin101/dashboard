@@ -31,8 +31,9 @@ if (as.integer(run) == 1) {
               'lst_dim = ', lst_dim,
               'impute = ', impute,
               'outlier = ', outlier,
-              'static = ', static
-              ))
+              'static = ', static,
+              sep = ' | '
+  ))
 
 } else if (as.integer(run) == 2) {
     
@@ -45,7 +46,8 @@ if (as.integer(run) == 1) {
               'use_decay = ', use_decay,
               'decay_bounds = ', decay_bounds,
               'use_log = ', use_log,
-              'use_mc = ', use_mc
+              'use_mc = ', use_mc,
+              sep = ' | '
   ))
     
 } else if (as.integer(run) == 3) {
@@ -79,8 +81,9 @@ if (as.integer(run) == 1) {
               'drop_subject = ', drop_subject,
               'use_trendseas = ', use_trendseas,
               'lst_cost = ', lst_cost,
-              'margin = ', margin
-    ))
+              'margin = ', margin,
+              sep = ' | '
+  ))
 
 } else if (as.numeric(run) == 4) {
     
@@ -91,7 +94,8 @@ if (as.integer(run) == 1) {
   print(paste("Prep parameters: ",
               'optim_goal = ', optim_goal,
               'budget_factor = ', budget_factor,
-              'sales_factor = ', sales_factor
+              'sales_factor = ', sales_factor,
+              sep = ' | '
   ))
 
 }

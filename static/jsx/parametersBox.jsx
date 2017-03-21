@@ -354,11 +354,9 @@ class ParametersDialog extends React.Component {
                             if (param.source != null) {
                                 const CSVParams = this.props.params[0];
 
-                                const srcParam = CSVParams.find(p => p.id == param.source);
-
-                                if (srcParam == "UNUSED_CSV_FIELDNAMES") {
-                                    const srcField = (srcParam != null) ? srcParam.value : null;
-                                    dataSet = this.getCSVColumnValues(srcField[0]);
+                                if (param.source != "UNUSED_CSV_FIELDNAMES") {
+                                    const srcParam = CSVParams.find(p => p.id == param.source);
+                                    dataSet = this.getCSVColumnValues(srcParam.value[0]);
                                 } else {
                                     dataSet = this.props.CSVFieldsPool;
                                 }
