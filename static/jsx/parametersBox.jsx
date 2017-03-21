@@ -298,10 +298,12 @@ class ParametersDialog extends React.Component {
             fetchCSVColumnRequest.addEventListener("load", request => {
                 const fieldValues = JSON.parse(request.target.response);
                 this.props.updateCSVColumnValues(fieldname, fieldValues.sort());
+                this.setState({CSVOperationActive: false});
             });
 
             fetchCSVColumnRequest.addEventListener("error", request => {
                 // TODO: Handle error
+                this.setState({CSVOperationActive: false});
             });
 
             const CSVFieldnameForm = new FormData();
@@ -477,9 +479,9 @@ class ParametersBox extends React.Component {
     }
 
     updateCSVColumnValues(fieldname, values) {
-        const CSVColumnValues = Object.assign({}, CSVColumnValues);
-        CSVColumnValues[fieldname] = values;
+        const CSVColumnValues = Object.assign({}, this.state.CSVColumnValues);
 
+        CSVColumnValues[fieldname] = values;
         this.setState({CSVColumnValues: CSVColumnValues});
     }
 
