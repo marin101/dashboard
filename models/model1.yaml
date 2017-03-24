@@ -7,372 +7,379 @@
         {
             id: read,
             name: "Data Read",
-            description: "Read your data file and look at basic diagnostics"
+            description: "Read your data file and look at basic diagnostics",
+
+            parameters: [file1, ind_vars, depvar, geobrand, subject, period, pbounds,
+                         datefmt, lst_dim, impute, outlier, static]
         },
         {
-            id: "prep",
+            id: prep,
             name: "Data Preparation",
-            description: "Prepare your modeling data and apply variable transformations"
+            description: "Prepare your modeling data and apply variable transformations",
+
+            parameters: [use_decay, decay_bounds, use_log, use_mc]
         },
         {
             id: "model",
             name: "Run Model",
-            description: "Run linear mixed effects models and report ROI from the best model"
+            description: "Run linear mixed effects models and report ROI from the best model",
+
+            parameters: [use_geobrand, use_seas, lst_seas, lst_rand, covstr, use_stat,
+                         use_prior, lst_prior, mixnmatch, drop_period, drop_subject,
+                         use_trendseas, lst_cost, margin]
         },
         {
             id: "optim",
             name: "Optimization",
-            description: "Top-down channel optimization for different scenarios"
+            description: "Top-down channel optimization for different scenarios",
+
+            parameters: [optim_goal, budget_factor, sales_factor]
         }
     ],
 
-    parameters: [
-    [
-        # Read step parameters
-        # file1
-        {
-            id: "file1",
+    parameters: {
+        file1: {
             type: "file",
             name: "Input data",
             description: "Upload input data in CSV format",
+
+            target: "ind_vars"
+        },
+
+        ind_vars: {
+            type: "dragDrop",
+            name: "Independent variables",
+            description: "Independent variables description",
+
+            unused: true    # This parameter is not sent to the R script
+        },
+
+        depvar: {
+            type: "dragDrop",
+            name: "Target variable",
+            description: "What you want to model",
+
+            size: 1
+        },
+
+        geobrand: {
+            type: "dragDrop",
+            name: "Geo-Brand",
+            description: "name of a column that represents a Brand or Geography",
+
+            size: 1
+        },
+
+        subject: {
+            type: "dragDrop",
+            name: "Subject",
+            description: "Level at which random effects will be reported",
+
+            size: 1
+        },
+
+        period: {
+            type: "dragDrop",
+            name: "Period",
+            description: "Column which represents time period",
+
+            size: 1
           },
 
-          {
-             id: "depvar",
-             type: "dragDrop",
-             name: "Target variable",
-             description: "What you want to model",
+        pbounds: {
+            type: "range",
+            name: "Analysis period",
+            description: "Periods within this range will be included in the model",
 
-             size: 1
-          },
-          {
-             "id": "geobrand",
-             "type": "dragDrop",
-             "name": "Geo-Brand",
-             "description": "name of a column that represents a Brand or Geography",
-
-             size: 1
-          },
-          {
-             "id": "subject",
-             "type": "dragDrop",
-             "name": "Subject",
-             "description": "Level at which random effects will be reported",
-
-             size: 1
-          },
-          {
-             "id": "period",
-             "type": "dragDrop",
-             "name": "Period",
-             "description": "Column which represents time period",
-
-             size: 1
+            source: "period"
           },
 
-          {
-             "id": "pbounds",
-             "type": "range",
-             "name": "Analysis period",
-             "description": "Periods within this range will be included in the model",
+        datefmt: {
+            type: "radio",           # Mutually exclusive checkboxes
+            name: "Date format",
+            description: "Format in which dates are stored in the input file",
 
-             source: "period"
-          },
-          {
-             "id": "datefmt",
-             "type": "radio",           # Mutually exclusive checkboxes
-             "name": "Date format",
-             "description": "Format in which dates are stored in the input file",
+            defaultValue: 0,         # Index in the choice array
 
-             "defaultValue": 0,         # Index in the choice array
+            choice: ["YYYY-MM-DD", "DD-MM-YYYY", "MM-DD-YYYY"],
+            returnValue: ["%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y"]
+        },
 
-             "choice": ["YYYY-MM-DD", "DD-MM-YYYY", "MM-DD-YYYY"],
-             "returnValue": ["%Y-%m-%d", "%d-%m-%Y", "%m-%d-%Y"],
-          },
-          {
-             "id": "lst_dim",
-             "type": "dragDrop",
-             "name": "Columns to ignore",
-             "description": "These will NOT be used for modeling",
+        lst_dim: {
+            type: "dragDrop",
+            name: "Columns to ignore",
+            description: "These will NOT be used for modeling",
 
-             "defaultValue": [],
+            defaultValue: [],
 
-             # When size is not given for a dragDrop, size is arbitrary
-          },
-          {
-             id: "impute",
-             type: "checkbox",
-             name: "Impute missing values?",
-             description: "Missing values will be replaced with zero",
+            # When size is not given for a dragDrop, size is arbitrary
+        },
 
-             defaultValue: true,            # true = checked, false == unchecked
-             returnValue: ['0', '1'],       # [unchecked_retval, checked_ret_val]
-          },
-          {
-             "id": "outlier",
-             "type": "checkbox",
-             "name": "Treat outliers?",
-             "description": "Outliers will be replaced with median",
+        impute: {
+            type: "checkbox",
+            name: "Impute missing values?",
+            description: "Missing values will be replaced with zero",
 
-             "defaultValue": false,
-             "returnValue": ['0', '1'],
-          },
-          {
-             "id": "static",
-             "type": "slider",
-             "name": "Subject inclusion threshold",
-             "description": "Subjects will be dropped if they have data for fewer % of periods",
+            defaultValue: true,            # true = checked, false == unchecked
+            returnValue: [0, 1]       # [unchecked_retval, checked_ret_val]
+        },
 
-             "defaultValue": 0,
+        outlier: {
+            type: "checkbox",
+            name: "Treat outliers?",
+            description: "Outliers will be replaced with median",
+
+            defaultValue: false,
+            returnValue: [0, 1]
+        },
+
+        static: {
+            type: "slider",
+            name: "Subject inclusion threshold",
+            description: "Subjects will be dropped if they have data for fewer % of periods",
+
+            defaultValue: 0,
 
             unit: '%',
 
-             min: 0,
-             max: 100,
-             step: 10,
-
-             scale: 100  # Displayed value is divided by scale when sent to the console
-          }
-        ],
+            min: 0,
+            max: 100,
+            step: 10
+        },
 
         # Preparation step parameters
-        [
-          {
-             id: "use_decay",
-             type: "checkbox",
-             name: "Apply adstock decay?",
-             description: "Apply adstock decay?",
+        use_decay: {
+            type: "checkbox",
+            name: "Apply adstock decay?",
+            description: "Apply adstock decay?",
 
-             defaultValue: true,
-             returnValue: ['0', '1'],
-          },
-          {
-             "id": "decay_bounds",
-             "type": "range",
-             "name": "Minimum and maximum decay rate",
-             "description": "All decay rates within this range will be modeled",
+            defaultValue: true,
+            returnValue: ['0', '1']
+        },
 
-             "defaultValue": [50, 80],
+        decay_bounds: {
+            type: "range",
+            name: "Minimum and maximum decay rate",
+            description: "All decay rates within this range will be modeled",
+
+            defaultValue: [50, 80],
 
             # Specifies the parameter which enables/disables this parameter
             control: {id: use_decay, enableValue: true},
 
-             min: 0,
-             max: 100,
-             step: 10,
+            min: 0,
+            max: 100,
+            step: 10,
 
-             scale: 100
+            scale: 100
+        },
+
+        use_log: {
+           type: "radio",
+           name: "Apply log transformation?",
+           description: "Target variables only or both target variables and factors?",
+
+           defaultValue: 0,
+
+           choice: ["None","Semi-log","Log-log"],
+           returnValue: [0, 1, 2]
           },
-          {
-             "id": "use_log",
-             "type": "radio",
-             "name": "Apply log transformation?",
-             "description": "Target variables only or both target variables and factors?",
 
-             "defaultValue": 0,
+        use_mc: {
+            type: "checkbox",
+            name: "Apply mean centering?",
+            description: "Apply mean centering?",
 
-             "choice": ["None","Semi-log","Log-log"],
-             "returnValue": [0, 1, 2],
-          },
-          {
-             "id": "use_mc",
-             "type": "checkbox",
-             "name": "Apply mean centering?",
-             "description": "Apply mean centering?",
-
-             "defaultValue": true,
-             "returnValue": ['0', '1'],
-          }
-       ],
+            defaultValue: true,
+            returnValue: ['0', '1']
+        },
 
         # Model step parameters
-        [
-         {
-             "id": "use_geobrand",
-             "type": "dropdown",
-             "name": "Brands/Geographies to analyze",
-             "description": "Leave blank to analyze ALL Brands/Geographies",
+        use_geobrand: {
+            type: "dropdown",
+            name: "Brands/Geographies to analyze",
+            description: "Leave blank to analyze ALL Brands/Geographies",
 
-             source: "geobrand",
+            source: "geobrand"
           },
-          {
-             "id": "use_seas",
-             "type": "radio",
-             "name": "Model seasonality?",
-             "description": "Options for modeling seasonality",
 
-             "defaultValue": 0,
+        use_seas: {
+            type: "radio",
+            name: "Model seasonality?",
+            description: "Options for modeling seasonality",
 
-             "choice": ["None","Dummy Month Factors","Numeric Sales Factors"],
-             "returnValue": [0, 1, 2],
+            defaultValue: 0,
+
+            choice: ["None","Dummy Month Factors","Numeric Sales Factors"],
+            returnValue: [0, 1, 2]
           },
-          {
-             "id": "lst_seas",
-             "type": "dropdown",
-             "name": "Select periods to control for",
-             "description": "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
-             "defaultValue": [],
-             source: "period"
+        lst_seas: {
+            type: "dropdown",
+            name: "Select periods to control for",
+            description: "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
+
+            defaultValue: [],
+            source: "period"
           },
-          {
-             "id": "lst_rand",
-             "type": "dropdown",
-             "name": "Variables to randomize",
-             "description": "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
-             "defaultValue": [],
+        lst_rand: {
+            type: "dropdown",
+            name: "Variables to randomize",
+            description: "Impacts for these variables will be reported at a subject level (leave blank to randomize all)",
 
-            source: "UNUSED_CSV_FIELDNAMES"
+            defaultValue: [],
+
+            source: "ind_vars"
           },
-          {
-             "id": "covstr",
-             "type": "radio",
-             "name": "Select covariance structure",
-             "description": "Options to model random effect interactions",
 
-             "defaultValue": 0,
-             "choice": ["Uncorrelated random slopes","Correlated random slopes","Try both options"],
-             "returnValue": ["0","1","2"],
-          },
-          {
-             "id": "use_stat",
-             "type": "radio",
-             "name": "Select fit statistic to use",
-             "description": "Best model will be selected based on this statistic. These measures should be interpreted in a relative sense only.",
+        covstr: {
+            type: "radio",
+            name: "Select covariance structure",
+            description: "Options to model random effect interactions",
 
-             "defaultValue": 0,
+            defaultValue: 0,
+            choice: ["Uncorrelated random slopes","Correlated random slopes","Try both options"],
+            returnValue: ["0","1","2"]
+        },
 
-             "choice": ["Use R-squared","Use AIC (Akaike Information Criterion)"],
-             "returnValue": [1, 2],
-          },
-          {
-             "id": "use_prior",
-             "type": "radio",
-             "name": "Select prior values to use",
-             "description": "Interpret priors as % contribution or ROI?",
+        use_stat: {
+            type: "radio",
+            name: "Select fit statistic to use",
+            description: "Best model will be selected based on this statistic. These measures should be interpreted in a relative sense only.",
 
-             "defaultValue": 0,
+            defaultValue: 0,
 
-             "choice": ["Use prior channel contribution","Use prior channel ROI"],
-             "returnValue": ["1","2"],
-          },
-          {
-             "id": "lst_prior",
-             "type": "dropdownEdit",
-             "name": "List of prior values",
-             "description": "List of prior values",
+            choice: ["Use R-squared","Use AIC (Akaike Information Criterion)"],
+            returnValue: [1, 2]
+        },
 
-             "defaultValue": '',
-             source: "UNUSED_CSV_FIELDNAMES"
-          },
-          {
-             "id": "mixnmatch",
-             "type": "radio",
-             "name": "Report channel impacts from different models?",
-             "description": "Uncheck to ensure all impacts reported from a single model",
+        use_prior: {
+            type: "radio",
+            name: "Select prior values to use",
+            description: "Interpret priors as % contribution or ROI?",
 
-             "defaultValue": 1,
+            defaultValue: 0,
 
-             "choice": ["false", "true"],
-             "returnValue": [0, 1],
-          },
-          {
-             "id": "drop_period",
-             "type": "dropdown",
-             "name": "Drop Periods",
-             "description": "These periods will be excluded from the model (select one or more)",
+            choice: ["Use prior channel contribution","Use prior channel ROI"],
+            returnValue: ["1","2"]
+        },
 
-             source: "period"
-          },
-          {
-             "id": "drop_subject",
-             "type": "dropdown",
-             "name": "Drop Subjects",
-             "description": "These subjects will be excluded from the model (provide a comma-separated list)",
+        lst_prior: {
+            type: "dropdownEdit",
+            name: "List of prior values",
+            description: "List of prior values",
 
-             source: "subject"
-          },
-          {
-             "id": "use_trendseas",
-             "type": "radio",
-             "name": "Model with and without Trend/Seasonality?",
-             "description": "Check to run models with and without trend and seasonality (default setting INCLUDES both)",
+            defaultValue: '',
+            source: "ind_vars"
+        },
 
-             "defaultValue": 0,
+        mixnmatch: {
+            type: "radio",
+            name: "Report channel impacts from different models?",
+            description: "Uncheck to ensure all impacts reported from a single model",
 
-             "choice": ["use trend and seasonality", "try with and without trend/seas"],
-             "returnValue": [0, 1]
-          },
-          {
-             id: "lst_cost",
-             type: "dropdownEdit",
-             name: "Enter per unit channel costs",
-             description: "Required for calculating ROI",
+            defaultValue: 1,
 
-             defaultValue: 1,
-             source: "UNUSED_CSV_FIELDNAMES"
-          },
-          {
-             "id": "margin",
-             "type": "text",
-             "name": "Enter gross margin",
-             "description": "Required for calculating ROI",
+            choice: ["false", "true"],
+            returnValue: [0, 1],
+        },
 
-             "defaultValue": 1
-          }
-       ],
+        drop_period: {
+            type: "dropdown",
+            name: "Drop Periods",
+            description: "These periods will be excluded from the model (select one or more)",
+
+            source: "period"
+        },
+
+        drop_subject: {
+            type: "dropdown",
+            name: "Drop Subjects",
+            description: "These subjects will be excluded from the model (provide a comma-separated list)",
+
+            source: "subject"
+        },
+
+        use_trendseas: {
+            type: "radio",
+            name: "Model with and without Trend/Seasonality?",
+            description: "Check to run models with and without trend and seasonality (default setting INCLUDES both)",
+
+            defaultValue: 0,
+
+            choice: ["use trend and seasonality", "try with and without trend/seas"],
+            returnValue: [0, 1]
+        },
+
+        lst_cost: {
+            type: "dropdownEdit",
+            name: "Enter per unit channel costs",
+            description: "Required for calculating ROI",
+
+            defaultValue: 1,
+            source: "ind_vars"
+        },
+
+        margin: {
+            type: "text",
+            name: "Enter gross margin",
+            description: "Required for calculating ROI",
+
+            validation: integer,       # Possible values: integer, decimal, url, text
+
+            min: 0,
+            # max: 100?
+            defaultValue: 1
+        },
 
         # Optimize step parameters
-           [
-          {
-             "id": "optim_goal",
-             "type": "radio",
-             "name": "Select optimization goal",
-             "description": "Defines what to optimize",
+        optim_goal: {
+            type: "radio",
+            name: "Select optimization goal",
+            description: "Defines what to optimize",
 
-             "defaultValue": 0,
+            defaultValue: 0,
 
-             "choice": ["Sales Max with Budget Constraint","Cost Min with Sales Target Constraint"],
-             "returnValue": [1, 2],
-          },
-          {
-             "id": "budget_factor",
-             "type": "slider",
-             "name": "Total channel cost as a ratio of current",
-             "description": "Expands the Budget Constraint to go beyond current budget",
+            choice: ["Sales Max with Budget Constraint","Cost Min with Sales Target Constraint"],
+            returnValue: [1, 2]
+        },
 
-             "defaultValue": 1,
+        budget_factor: {
+            type: "slider",
+            name: "Total channel cost as a ratio of current",
+            description: "Expands the Budget Constraint to go beyond current budget",
+
+            defaultValue: 1,
 
             control: {id: optim_goal, enableValue: 0},
 
             unit: '%',
 
-             min: -50,
-             max: 50,
-             step: 10,
+            min: -50,
+            max: 50,
+            step: 10,
 
-             scale: 100
-          },
-          {
-             "id": "sales_factor",
-             "type": "slider",
-             "name": "Target sales as a ratio of current",
-             "description": "Expands the Sales Target Constraint to go beyond current sales",
+            scale: 100
+        },
 
-             "defaultValue": 1,
+        sales_factor: {
+            type: "slider",
+            name: "Target sales as a ratio of current",
+            description: "Expands the Sales Target Constraint to go beyond current sales",
+
+            defaultValue: 1,
 
             control: {id: optim_goal, enableValue: 1},
 
             unit: '%',
 
-             min: -50,
-             max: 50,
-             step: 10,
+            min: -50,
+            max: 50,
+            step: 10,
 
-             scale: 100
-          }
-        ]
-    ]
+            scale: 100
+        }
+    }
 }
 

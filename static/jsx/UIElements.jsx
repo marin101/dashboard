@@ -1,55 +1,65 @@
-import {Form, Popup, Input, Checkbox, Radio, Dropdown} from "semantic-ui-react";
-import Slider, {Range} from "rc-slider";
 import React from "react";
 
-function TextParam(props) {
-    let {name, description, value} = props.parameter;
+import Slider, {Range} from "rc-slider";
+import {DragSource, DropTarget} from "react-dnd";
+import {Segment, Header, Form, Popup, Input, Checkbox, Radio, Dropdown} from "semantic-ui-react";
 
-    if (value == null) {
-        props.onChange('');
-        value = '';
+// TODO: Add required prop
+function TextParam(props) {
+    const {name, description, value='', defaultValue, min, max} = props.parameter;
+
+    let valueType;
+    switch (props.parameter.validation) {
+        case "integer":
+            valueType = "number";
+        case "hidden":
+            valueType: "password";
+        default:
+            valueType = "text";
     }
 
     return (
-        <Form.Field>
+        <Form.Field error={defaultValue == null && value == ''}>
             <Popup on="hover" content={description} trigger={
                 <label> {name} </label>
             }/>
 
-            <Input focus placeholder={description} value={value}
-                onChange={(e, data) => {props.onChange(data.value)}}/>
+            <Input focus placeholder={description} type={valueType} min={min} max={max}
+                value={value} onChange={(e, data) => {props.onChange(data.value)}}/>
         </Form.Field>
     );
 }
 
+// TODO: Add required prop
 function CheckboxParam(props) {
-    const isChecked = props.parameter.value;
+    const {name, description, value, defaultValue} = props.parameter;
 
     return (
-        <Form.Field>
-            <Checkbox checked={isChecked} onChange={() => {props.onChange(!isChecked)}}
-                label={<Popup on="hover" content={props.parameter.description} trigger={
-                    <label> {props.parameter.name} </label>
+        <Form.Field error={value == null}>
+            <Checkbox checked={value} onChange={() => {props.onChange(!value)}}
+                indeterminate={typeof value != "boolean"} label={
+                    <Popup on="hover" content={description} trigger={
+                        <label> {name} </label>
                 }/>}
             />
         </Form.Field>
     );
 }
 
+// TODO: Add required prop
 function RadioParam(props) {
+    const {name, description, value, defaultValue} = props.parameter;
+
     return (
-        <Form.Field>
-            <Popup on="hover" content={props.parameter.description} trigger={
-                <label> {props.parameter.name} </label>
+        <Form.Field error={value == null}>
+            <Popup on="hover" content={description} trigger={
+                <label> {name} </label>
             }/>
 
             <Form.Group>
                 {props.parameter.choice.map((choice, idx) =>
                     <Form.Field key={idx}>
-                        <Radio
-                            label={choice}
-                            name={props.parameter.id}
-                            checked={props.parameter.value == idx}
+                        <Radio label={choice} name={props.parameter.id} checked={value == idx}
                             onChange={() => {props.onChange(idx)}}
                         />
                     </Form.Field>
@@ -60,24 +70,17 @@ function RadioParam(props) {
 }
 
 function DropdownParam(props) {
-    let {name, description, value} = props.parameter;
-
-    if (value == null) {
-        props.onChange([]);
-        value = [];
-    }
+    const {name, description, value=[], defaultValue} = props.parameter;
 
     let dropdownOptions = [];
     if (props.options != null) {
         dropdownOptions = props.options.map((item, idx) => ({
-            key: idx,
-            text: item,
-            value: item
+            key: idx, text: item, value: item
         }));
     }
 
     return (
-        <Form.Field>
+        <Form.Field error={defaultValue == null && value.length <= 0}>
             <Popup on="hover" content={description} trigger={
                 <label> {name} </label>
             }/>
@@ -90,49 +93,58 @@ function DropdownParam(props) {
     );
 }
 
-function DropdownEditParam(props) {
-    let {name, description, value} = props.parameter;
+class DropdownEditParam extends React.Component {
+    componentWillMount() {
+        console.log("kita", this.props.parameter.name);
+        const value = this.props.parameter.value;
 
-    if (!Array.isArray(value) || value.length != props.options.length) {
-        value = [];
+        /* Initialize dropdown values */
+        if (!Array.isArray(value) || value.length != this.props.options.length) {
+            const newValue = [];
 
-        for (let i = 0; i < props.options.length; i++) {
-            value.push(props.parameter.defaultValue);
+            for (let i = 0; i < this.props.options.length; i++) {
+                newValue.push(this.props.parameter.defaultValue);
+            }
+
+            this.props.onChange(newValue);
+        }
+    }
+
+    render() {
+        const {name, description, value} = this.props.parameter;
+        console.log("kara", name);
+
+        let dropdownOptions = [];
+        if (this.props.options != null) {
+            dropdownOptions = this.props.options.map((item, idx) => ({
+                key: idx,
+                text: item,
+                value: item,
+
+                content: (
+                    <Input focus value={value[idx]} label={{content: item}}
+                        onChange={(e, data) => {
+                            const newValue = value.slice();
+
+                            newValue[idx] = data.value;
+                            this.props.onChange(newValue);
+                        }
+                    }/>
+                )
+            }));
         }
 
-        props.onChange(value);
-    }
-
-    let dropdownOptions = [];
-    if (props.options != null) {
-        dropdownOptions = props.options.map((item, idx) => ({
-            key: idx,
-            text: item,
-            value: item,
-
-            content: (
-                <Input focus value={value[idx]} label={{content: item}}
-                    onChange={(e, data) => {
-                        const newValue = value.slice();
-
-                        newValue[idx] = data.value;
-                        props.onChange(newValue);
-                    }
+        return (
+            <Form.Field>
+                <Popup on="hover" content={description} trigger={
+                    <label> {name} </label>
                 }/>
-            )
-        }));
+
+                <Dropdown fluid search closeOnChange={false} selection value=''
+                    placeholder={description} options={dropdownOptions}/>
+            </Form.Field>
+        );
     }
-
-    return (
-        <Form.Field>
-            <Popup on="hover" content={description} trigger={
-                <label> {name} </label>
-            }/>
-
-            <Dropdown fluid search closeOnChange={false} selection value=''
-                placeholder={description} options={dropdownOptions}/>
-        </Form.Field>
-    );
 }
 
 function SliderParam(props) {
@@ -261,6 +273,138 @@ function RangeParam(props) {
         </Form.Field>
     );
 }
+const itemSource = {
+    beginDrag(props) {
+        return {item: props.item};
+    },
+    endDrag(props, monitor) {
+        if (monitor.didDrop()) {
+            const {removedItem} = monitor.getDropResult();
+            props.onChange(props.item, removedItem);
+        }
+    }
+}
 
-export {TextParam, CheckboxParam, RadioParam, DropdownParam, DropdownEditParam, SliderParam, RangeParam};
+function DragDropSourceContainer(props) {
+    const opacity = props.isDragging ? 0 : 1;
+
+    const style = {
+        border: '1px dashed gray',
+        borderRadius: "5px",
+        padding: '0.5rem 1rem',
+        margin: '.5rem',
+        backgroundColor: 'white'
+    };
+
+    return props.connectDragSource(
+        <div style={style}>
+            {props.item}
+        </div>
+    );
+}
+
+const DragDropSource = DragSource("CSV_FIELDNAME", itemSource,
+    (connect, monitor) => ({
+        connectDragSource: connect.dragSource(),
+        isDragging: monitor.isDragging()
+    })
+)(DragDropSourceContainer);
+
+function DragDropTargetContainer(props) {
+    const style = {
+        border: '1px dashed green',
+        borderRadius: "5px",
+        padding: '0.5rem 1rem',
+        margin: '.5rem',
+        width: "200px",
+        height: "200px"
+    };
+
+    return props.connectDropTarget(
+        <div style={style}>
+            {props.children}
+        </div>
+    );
+
+}
+
+const itemTarget = {
+    drop: (props, monitor) => {
+        const item = monitor.getItem().item;
+        const {value=[], size} = props.parameter;
+        const items = value.slice();
+
+        let removedItem;
+        if (size != null && size <= value.length) {
+            removedItem = items.pop();
+        }
+
+        items.push(item);
+        // TODO: Add sorting
+        props.onChange(items);
+
+        /* Return removed item to the drag source */
+        return {removedItem: removedItem};
+    }
+};
+
+const DragDropTarget = DropTarget("CSV_FIELDNAME", itemTarget,
+    (connect, monitor) => ({
+        connectDropTarget: connect.dropTarget()
+    })
+)(DragDropTargetContainer);
+
+function DragDropParam(props) {
+    const {name, description, value=[], size} = props.parameter;
+
+    const onDragSrcChange = (valToRemove, valToAdd) => {
+        const newValue = value.filter(item => item != valToRemove);
+
+        // TODO: Add sort
+        if (valToAdd != null) {
+            newValue.push(valToAdd);
+        }
+
+        props.onChange(newValue);
+    };
+
+    // TODO: Fix loading
+    if (size == 1) {
+        return (
+            <div style={{display: "flex"}}>
+                <DragDropTarget parameter={props.parameter} style={{flex: 1}}
+                    onChange={props.onChange}>
+                    <DragDropSource item={value[0]} onChange={onDragSrcChange}/>
+                </DragDropTarget>
+
+                <div style={{textAlign: "center", flex: 1}}>
+                    &rArr;
+                </div>
+
+                <Popup on="hover" content={description} trigger={
+                    <div style={{textAlign: "right", flex: 1}}>
+                        {name}
+                    </div>
+                }/>
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <Popup on="hover" content={description} trigger={
+                <Header dividing block> {name} </Header>
+            }/>
+
+            <DragDropTarget parameter={props.parameter} onChange={props.onChange}>
+                {value.map((item, idx) =>
+                    <DragDropSource key={idx} item={item} onChange={onDragSrcChange}/>
+                )}
+            </DragDropTarget>
+        </div>
+    );
+}
+
+export {TextParam, CheckboxParam, RadioParam, DropdownParam,
+        DropdownEditParam, SliderParam, RangeParam, DragDropParam};
 

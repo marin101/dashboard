@@ -22,7 +22,7 @@ class ConsoleOutputBox extends React.Component {
 				</Header>
 
                 {this.props.output.map((line, idx) =>
-                    <div key={idx}>
+                    <div key={idx} style={{"white-space": "pre-wrap"}}>
                         {line} <br/>
                     </div>
                 )}
