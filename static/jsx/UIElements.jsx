@@ -2,7 +2,28 @@ import React from "react";
 
 import Slider, {Range} from "rc-slider";
 import {DragSource, DropTarget} from "react-dnd";
-import {Segment, Header, Form, Popup, Input, Checkbox, Radio, Dropdown} from "semantic-ui-react";
+import {Segment, Header, Form, Popup, Input, Button, Checkbox, Radio, Dropdown} from "semantic-ui-react";
+
+function FileInputParam(props) {
+    const {name, description, value=''} = props.parameter;
+
+    let uploadCSVButtonRef;
+
+    return (
+        <Input placeholder={description} size="mini" value={value}>
+            <input disabled/>
+
+            <span style={{display: "none"}}>
+            <input type="file" ref={input => {uploadCSVButtonRef = input}}
+                onChange={props.onChange}/>
+            </span>
+
+            <Button onClick={() => {uploadCSVButtonRef.click()}}>
+                {name}
+            </Button>
+        </Input>
+    );
+}
 
 // TODO: Add required prop
 function TextParam(props) {
@@ -95,7 +116,6 @@ function DropdownParam(props) {
 
 class DropdownEditParam extends React.Component {
     componentWillMount() {
-        console.log("kita", this.props.parameter.name);
         const value = this.props.parameter.value;
 
         /* Initialize dropdown values */
@@ -112,7 +132,6 @@ class DropdownEditParam extends React.Component {
 
     render() {
         const {name, description, value} = this.props.parameter;
-        console.log("kara", name);
 
         let dropdownOptions = [];
         if (this.props.options != null) {
@@ -148,10 +167,8 @@ class DropdownEditParam extends React.Component {
 }
 
 function SliderParam(props) {
-    let {name, value, description, unit, min, max, step, scale} = props.parameter;
-
-    /* Default unit */
-    if (unit == null) unit = '';
+    const {name, value, description, unit='', choice, step} = props.parameter;
+    const [min, max] = choice;
 
     const marks = {};
 
@@ -197,81 +214,85 @@ function SliderParam(props) {
     );
 }
 
-function RangeParam(props) {
-    let {name, description, value, min, max, step, unit} = props.parameter;
-
-    /* Default unit */
-    if (unit == null) unit = '';
-
-    /* Range is disabled when dataSet was expected but not given */
-    const disabled = props.disabled || (props.parameter.source != null && props.dataSet == null);
-
-    if (props.dataSet != null) {
-        max = props.dataSet.length - 1;
-        min = 0;
-        step = 1;
-
-        if (value == null) {
-            value = [min, max];
-            props.onChange(value);
+class RangeParam extends React.Component {
+    componenWillReceiveProps(nextProps) {
+        if (nextProps.dataSet != null && nextProps.parameter.value == null) {
+            nextProps.onChange([0, nextProps.dataSet.length - 1]);
         }
-    } else if (disabled && value == null) {
-        value = [0, 0];
     }
 
-    const marks = {};
+    render() {
+        let {name, description, value, choice, step, source, unit=''} = this.props.parameter;
+        let [min, max] = (choice != null) ? choice : [0, 0];
 
-    /* There will be at most 10 marked points */
-    const stepCnt = Math.floor((max - min) / step) + 1;
-    const markDist = (stepCnt < 10) ? step : (max - min)/10;
+        /* Range is disabled when dataSet was expected but not given */
+        const disabled = this.props.disabled || (source != null && this.props.dataSet == null);
 
-    /* Check if all marking values will be integers */
-    const isInteger = Number.isInteger(min) && Number.isInteger(step);
+        if (this.props.dataSet != null) {
+            [min, max] = [0, this.props.dataSet.length - 1];
 
-    /* Construct marks object */
-    if (props.dataSet == null) {
-        for (let i = min; i <= max; i += markDist) {
-            const val = isInteger ? Math.round(i) : i;
-            marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
+            if (value == null) {
+                value = [min, max];
+            }
+        } else if (disabled && value == null) {
+            value = [0, 0];
         }
-    } else {
-        marks[min] = props.dataSet[min] + unit;
-        marks[max] = props.dataSet[max] + unit;
+
+        const marks = {};
+
+        /* There will be at most 10 marked points */
+        const stepCnt = Math.floor((max - min) / step) + 1;
+        const markDist = (stepCnt < 10) ? step : (max - min)/10;
+
+        /* Check if all marking values will be integers */
+        const isInteger = Number.isInteger(min) && Number.isInteger(step);
+
+        /* Construct marks object */
+        // TODO: hack
+        if (this.props.dataSet == null && false) {
+            for (let i = min; i <= max; i += markDist) {
+                const val = isInteger ? Math.round(i) : i;
+                marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
+            }
+        } else {
+            marks[min] = this.props.dataSet[min] + unit;
+            marks[max] = this.props.dataSet[max] + unit;
+        }
+
+        let lowValue, highValue;
+        if (this.props.dataSet == null) {
+            lowValue  = isInteger ? value[0] : value[0].toFixed(2);
+            highValue = isInteger ? value[1] : value[1].toFixed(2);
+        } else {
+            lowValue   = this.props.dataSet[value[0]];
+            highValue  = this.props.dataSet[value[1]];
+        }
+
+        const rangeStyle = {
+            "width": "auto",
+            "marginLeft": "1em",
+            "marginRight": "1em"
+        };
+
+        return (
+            <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
+                <Popup on="hover" content={description} trigger={
+                    <label style={{"display": "inline"}}> {name} </label>
+                }/>
+
+                <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
+                    <strong> {lowValue + unit} </strong>
+                    &hArr;
+                    <strong> {highValue + unit} </strong>
+                </div>
+
+                <Range count={2} disabled={disabled} min={min} max={max} step={step}
+                    dots={!disabled && this.props.dataSet != null}
+                    marks={marks} value={value} allowCross={false} style={rangeStyle}
+                    onChange={newVal => {this.props.onChange(newVal)}}/>
+            </Form.Field>
+        );
     }
-
-    let lowValue, highValue;
-    if (props.dataSet == null) {
-        lowValue  = isInteger ? value[0] : value[0].toFixed(2);
-        highValue = isInteger ? value[1] : value[1].toFixed(2);
-    } else {
-        lowValue   = props.dataSet[value[0]];
-        highValue  = props.dataSet[value[1]];
-    }
-
-    const rangeStyle = {
-        "width": "auto",
-        "marginLeft": "1em",
-        "marginRight": "1em"
-    };
-
-    return (
-        <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
-            <Popup on="hover" content={description} trigger={
-                <label style={{"display": "inline"}}> {name} </label>
-            }/>
-
-            <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
-                <strong> {lowValue + unit} </strong>
-                &hArr;
-                <strong> {highValue + unit} </strong>
-            </div>
-
-            <Range count={2} disabled={disabled} min={min} max={max} step={step}
-                dots={!disabled && props.dataSet != null}
-                marks={marks} value={value} allowCross={false} style={rangeStyle}
-                onChange={newVal => {props.onChange(newVal)}}/>
-        </Form.Field>
-    );
 }
 const itemSource = {
     beginDrag(props) {
@@ -288,18 +309,8 @@ const itemSource = {
 function DragDropSourceContainer(props) {
     const opacity = props.isDragging ? 0 : 1;
 
-    const style = {
-        border: '1px dashed gray',
-        borderRadius: "5px",
-        padding: '0.5rem 1rem',
-        margin: '.5rem',
-        backgroundColor: 'white'
-    };
-
     return props.connectDragSource(
-        <div style={style}>
-            {props.item}
-        </div>
+        <div> {props.item} </div>
     );
 }
 
@@ -311,18 +322,37 @@ const DragDropSource = DragSource("CSV_FIELDNAME", itemSource,
 )(DragDropSourceContainer);
 
 function DragDropTargetContainer(props) {
-    const style = {
-        border: '1px dashed green',
-        borderRadius: "5px",
-        padding: '0.5rem 1rem',
-        margin: '.5rem',
-        width: "200px",
-        height: "200px"
+    const {size} = props.parameter;
+
+    const containerStyle = {
+        height: 2.8*size + "rem",
+        border: "1px solid green",
+        borderTop: "none",
+        overflow: "auto"
     };
 
+    const style = {
+        border: "1px dashed gray",
+        borderRadius: "5px",
+        padding: "0.5rem 0.7rem",
+        margin: "0.2rem"
+    };
+
+    if (size <= 1) {
+        return props.connectDropTarget(
+            <div style={Object.assign({}, containerStyle, {width: "33%"})}>
+                {React.Children.map(props.children, child =>
+                    <div> {child} </div>
+                )}
+            </div>
+        );
+    }
+
     return props.connectDropTarget(
-        <div style={style}>
-            {props.children}
+        <div style={containerStyle}>
+            {React.Children.map(props.children, child =>
+                <div style={style}> {child} </div>
+            )}
         </div>
     );
 
@@ -331,11 +361,11 @@ function DragDropTargetContainer(props) {
 const itemTarget = {
     drop: (props, monitor) => {
         const item = monitor.getItem().item;
-        const {value=[], size} = props.parameter;
+        const {value=[], capacity} = props.parameter;
         const items = value.slice();
 
         let removedItem;
-        if (size != null && size <= value.length) {
+        if (capacity != null && capacity <= value.length) {
             removedItem = items.pop();
         }
 
@@ -355,7 +385,7 @@ const DragDropTarget = DropTarget("CSV_FIELDNAME", itemTarget,
 )(DragDropTargetContainer);
 
 function DragDropParam(props) {
-    const {name, description, value=[], size} = props.parameter;
+    const {name, description, value=[], capacity} = props.parameter;
 
     const onDragSrcChange = (valToRemove, valToAdd) => {
         const newValue = value.filter(item => item != valToRemove);
@@ -369,17 +399,15 @@ function DragDropParam(props) {
     };
 
     // TODO: Fix loading
-    if (size == 1) {
+    if (capacity == 1) {
         return (
-            <div style={{display: "flex"}}>
+            <div style={{display: "flex", margin: "0.2rem"}}>
                 <DragDropTarget parameter={props.parameter} style={{flex: 1}}
                     onChange={props.onChange}>
                     <DragDropSource item={value[0]} onChange={onDragSrcChange}/>
                 </DragDropTarget>
 
-                <div style={{textAlign: "center", flex: 1}}>
-                    &rArr;
-                </div>
+                <div style={{textAlign: "center", flex: 1}}> &rArr; </div>
 
                 <Popup on="hover" content={description} trigger={
                     <div style={{textAlign: "right", flex: 1}}>
@@ -393,7 +421,7 @@ function DragDropParam(props) {
     return (
         <div>
             <Popup on="hover" content={description} trigger={
-                <Header dividing block> {name} </Header>
+                <Header dividing block attached="top"> {name} </Header>
             }/>
 
             <DragDropTarget parameter={props.parameter} onChange={props.onChange}>
@@ -405,6 +433,6 @@ function DragDropParam(props) {
     );
 }
 
-export {TextParam, CheckboxParam, RadioParam, DropdownParam,
+export {TextParam, CheckboxParam, RadioParam, DropdownParam, FileInputParam,
         DropdownEditParam, SliderParam, RangeParam, DragDropParam};
 

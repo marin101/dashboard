@@ -9,31 +9,84 @@
             name: "Data Read",
             description: "Read your data file and look at basic diagnostics",
 
-            parameters: [file1, ind_vars, depvar, geobrand, subject, period, pbounds,
-                         datefmt, lst_dim, impute, outlier, static]
+            # Defines the order of parameters
+            parameters: [file1, depvar, geobrand, subject, period, pbounds,
+                         datefmt, lst_dim, impute, outlier, static],
+
+            # Describes how parameters are displayed in the GUI
+            layout: [
+                # Page 0
+                {
+                    # Header parameters
+                    header: [file1],        # Aligned to right by default
+
+                    body: [
+                        # 1st column
+                        [ind_vars],
+
+                        # 2nd column
+                        [
+                            # Parameters stacked in rows
+                            [depvar, geobrand, subject, period, lst_dim]
+                        ]
+                    ]
+
+                    # etc...
+                },
+
+                # Page 1
+                {
+                    body: [
+                        [pbounds, datefmt, impute],
+                        [outlier, static]
+                    ]
+                }
+            ]
         },
         {
             id: prep,
             name: "Data Preparation",
             description: "Prepare your modeling data and apply variable transformations",
 
-            parameters: [use_decay, decay_bounds, use_log, use_mc]
+            parameters: [use_decay, decay_bounds, use_log, use_mc],
+
+            layout: [
+                {
+                    body: [use_decay, decay_bounds, use_log, use_mc]
+                }
+            ]
         },
         {
-            id: "model",
+            id: model,
             name: "Run Model",
             description: "Run linear mixed effects models and report ROI from the best model",
 
             parameters: [use_geobrand, use_seas, lst_seas, lst_rand, covstr, use_stat,
                          use_prior, lst_prior, mixnmatch, drop_period, drop_subject,
-                         use_trendseas, lst_cost, margin]
+                         use_trendseas, lst_cost, margin],
+
+            layout: [
+                {
+                    body: [
+                        [use_geobrand, use_seas, lst_seas, lst_rand, covstr, use_stat],
+                        [use_prior, lst_prior, mixnmatch, drop_period, drop_subject],
+                        [use_trendseas, lst_cost, margin]
+                    ]
+                }
+            ]
         },
         {
-            id: "optim",
+            id: optim,
             name: "Optimization",
             description: "Top-down channel optimization for different scenarios",
 
-            parameters: [optim_goal, budget_factor, sales_factor]
+            parameters: [optim_goal, budget_factor, sales_factor],
+
+            layout: [
+                {
+                    body: [optim_goal, budget_factor, sales_factor]
+                }
+            ]
         }
     ],
 
@@ -51,7 +104,7 @@
             name: "Independent variables",
             description: "Independent variables description",
 
-            unused: true    # This parameter is not sent to the R script
+            size: 5
         },
 
         depvar: {
@@ -59,7 +112,8 @@
             name: "Target variable",
             description: "What you want to model",
 
-            size: 1
+            size: 1,            # Size of the box
+            capacity: 1
         },
 
         geobrand: {
@@ -67,7 +121,8 @@
             name: "Geo-Brand",
             description: "name of a column that represents a Brand or Geography",
 
-            size: 1
+            size: 1,
+            capacity: 1
         },
 
         subject: {
@@ -75,7 +130,8 @@
             name: "Subject",
             description: "Level at which random effects will be reported",
 
-            size: 1
+            size: 1,
+            capacity: 1
         },
 
         period: {
@@ -83,7 +139,8 @@
             name: "Period",
             description: "Column which represents time period",
 
-            size: 1
+            size: 1,
+            capacity: 1
           },
 
         pbounds: {
@@ -91,7 +148,7 @@
             name: "Analysis period",
             description: "Periods within this range will be included in the model",
 
-            source: "period"
+            source: {id: period, action: "readCSV", unique: true}
           },
 
         datefmt: {
@@ -112,7 +169,8 @@
 
             defaultValue: [],
 
-            # When size is not given for a dragDrop, size is arbitrary
+            size: 4
+            # When capacity is not given for a dragDrop, capacity is infinite
         },
 
         impute: {
@@ -142,8 +200,8 @@
 
             unit: '%',
 
-            min: 0,
-            max: 100,
+            # min - max
+            choice: [0, 100],
             step: 10
         },
 
@@ -167,11 +225,10 @@
             # Specifies the parameter which enables/disables this parameter
             control: {id: use_decay, enableValue: true},
 
-            min: 0,
-            max: 100,
+            choice: [0, 100],
             step: 10,
 
-            scale: 100
+            returnValue: [0, 1]
         },
 
         use_log: {
@@ -200,7 +257,7 @@
             name: "Brands/Geographies to analyze",
             description: "Leave blank to analyze ALL Brands/Geographies",
 
-            source: "geobrand"
+            source: {id: geobrand, action: "readCSV", unique: true}
           },
 
         use_seas: {
@@ -220,7 +277,7 @@
             description: "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
             defaultValue: [],
-            source: "period"
+            source: {id: period, action: "readCSV", unique: true}
           },
 
         lst_rand: {
@@ -230,7 +287,7 @@
 
             defaultValue: [],
 
-            source: "ind_vars"
+            source: {id: ind_vars, action: "paramValue"}
           },
 
         covstr: {
@@ -271,7 +328,7 @@
             description: "List of prior values",
 
             defaultValue: '',
-            source: "ind_vars"
+            source: {id: ind_vars, action: "paramValue"}
         },
 
         mixnmatch: {
@@ -290,7 +347,7 @@
             name: "Drop Periods",
             description: "These periods will be excluded from the model (select one or more)",
 
-            source: "period"
+            source: {id: period, action: "readCSV", unique: true}
         },
 
         drop_subject: {
@@ -298,7 +355,7 @@
             name: "Drop Subjects",
             description: "These subjects will be excluded from the model (provide a comma-separated list)",
 
-            source: "subject"
+            source: {id: subject, action: "readCSV", unique: true}
         },
 
         use_trendseas: {
@@ -318,7 +375,7 @@
             description: "Required for calculating ROI",
 
             defaultValue: 1,
-            source: "ind_vars"
+            source: {id: ind_vars, action: "paramValue"}
         },
 
         margin: {
@@ -356,11 +413,10 @@
 
             unit: '%',
 
-            min: -50,
-            max: 50,
+            choice: [-50, 50],
             step: 10,
 
-            scale: 100
+            returnValue: [-5, 5]
         },
 
         sales_factor: {
@@ -374,11 +430,10 @@
 
             unit: '%',
 
-            min: -50,
-            max: 50,
+            choice: [-50, 50],
             step: 10,
 
-            scale: 100
+            returnValue: [-5, 5]
         }
     }
 }

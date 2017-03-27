@@ -4,34 +4,154 @@ import ReactDOM from "react-dom";
 import {Grid, Header, Dropdown, Icon, Button, Popup, Form, Menu, Input, Modal} from "semantic-ui-react";
 import {DropdownEditParam, TextParam, CheckboxParam, RadioParam} from "./UIElements.jsx";
 import {DropdownParam, SliderParam, RangeParam, DragDropParam} from "./UIElements.jsx";
+import {FileInputParam} from "./UIElements.jsx";
 
 import HTML5Backend from "react-dnd-html5-backend";
 import {DragDropContext} from "react-dnd";
 
 import 'rc-slider/assets/index.css';
 
-/**
- * Component for uploading CSV file and
- * mapping of the fieldnames from the file to the model parameters
- */
-class CSVFieldsMappingDialog extends React.Component {
-    uploadCSVFile(fileParameter, event) {
+// TODO: Remove params props field
+function Param(props) {
+    switch(props.param.type) {
+        case "checkbox":
+            return <CheckboxParam parameter={props.param} onChange={props.onChange}/>;
+        case "radio":
+            return <RadioParam parameter={props.param} onChange={props.onChange}/>;
+        case "dropdown":
+            return <DropdownParam parameter={props.param} options={props.dataSet}
+                onChange={props.onChange}/>;
+        case "dropdownEdit":
+            return <DropdownEditParam parameter={props.param} options={props.dataSet}
+                onChange={props.onChange}/>;
+        case "dragDrop":
+            return <DragDropParam parameter={props.param} onChange={props.onChange}/>;
+        case "slider":
+            return <SliderParam parameter={props.param} disabled={props.disabled}
+                onChange={props.onChange}/>;
+        case "range":
+            return <RangeParam parameter={props.param} dataSet={props.dataSet}
+                onChange={props.onChange} disabled={props.disabled}/>;
+        case "file":
+            return <FileInputParam parameter={props.param} onChange={props.onChange}/>;
+        case "text":
+        case "dragDrop":
+        default:
+            return <TextParam parameter={props.param} onChange={props.onChange}/>;
+    }
+}
+
+function PageParams(props) {
+    const {params, paramIds, isGridRow=false} = props;
+
+    if (Array.isArray(paramIds)) {
+        const childParams = paramIds.map((childParamIds, idx) =>
+            <PageParams key={idx} params={params} paramIds={childParamIds}
+                CSVColumnValues={props.CSVColumnValues}
+                onChange={props.onChange}
+                isGridRow={!isGridRow}
+            />
+        );
+
+        if (props.isGridRow) {
+            return <Grid.Row> {childParams} </Grid.Row>;
+        }
+
+        return <Grid.Column> {childParams} </Grid.Column>;
+    }
+
+    /* No more grid nesting (paramIds is only one parameter) */
+    const param = params[paramIds];
+    let disabled = false, dataSet;
+
+    /* Check if parameter state is controlled by another parameter */
+    if (param.control != null) {
+        const controlParam = params[param.control.id];
+        disabled = controlParam.value != param.control.enableValue;
+    }
+
+    /* Check if parameter values are taken from another parameter */
+    if (param.source != null) {
+        const srcParam = params[param.source.id];
+
+        // TODO: Handle properly
+        if (srcParam.value != null) {
+            dataSet = props.CSVColumnValues[srcParam.value[0]];
+        }
+    }
+
+    return (
+        <Param onChange={props.onChange.bind(this, paramIds)}
+            param={param} dataSet={dataSet} disabled={disabled}
+        />
+    );
+}
+
+class ParametersDialog extends React.Component {
+    constructor() {
+        super();
+
+        this.state = {
+            page: 0
+        };
+
+        this.CSVOperationActive = false;
+
+        this.runModel = this.runModel.bind(this);
+        this.goToPrevPage = this.goToPrevPage.bind(this);
+        this.goToNextPage = this.goToNextPage.bind(this);
+        this.readCSVColumn = this.readCSVColumn.bind(this);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.step == null) return;
+
+        const {step, params, CSVColumnValues} = nextProps;
+
+        // TODO: Support pages
+        const pageParamIds = step.layout[this.state.page];
+
+        /* Read all CSV columns that will be used */
+        for (let paramId in params) {
+            const param = params[paramId];
+
+            if (param.source != null && param.source.action == "readCSV") {
+                const uniqueValuesOnly = param.source.unique == true;
+                const srcParam = params[param.source.id];
+
+                // TODO: Change CSVColumnValues when changing srcParam.value
+                if (srcParam.value != null) {
+                    srcParam.value.forEach(csvFieldname => {
+                        /* Read only those that are were not already read */
+                        if (!CSVColumnValues.hasOwnProperty(csvFieldname)) {
+                            this.readCSVColumn(csvFieldname, uniqueValuesOnly);
+                        }
+                    });
+                }
+            }
+        }
+
+        /* Page must be reset when step changes */
+        if (this.props.stateIdx != nextProps.stateIdx) {
+            this.setState({page: 0});
+        }
+    }
+
+    uploadCSVFile(paramId, event) {
         const file = event.target.files[0];
 
         if (file != null) {
             const uploadCSVFileRequest = new XMLHttpRequest();
 
             uploadCSVFileRequest.addEventListener("load", request => {
-                /* Update filename parameter */
-                // TODO: Remove hardcoded values
-                this.props.onChange(0, 0, file.name);
-
                 const CSVFieldnames = JSON.parse(request.target.response).fieldnames;
-                const targetParamIdx = this.props.params.findIndex(param =>
-                    param.id == fileParameter.target
-                );
+                const targetParamId = this.props.params[paramId].target;
 
-                this.props.onChange(0, targetParamIdx, CSVFieldnames.sort((a, b) =>
+                /* Update filename parameter */
+                this.props.onChange(paramId, file.name);
+
+                /* Update referenced parameter */
+                this.props.onChange(targetParamId, CSVFieldnames.sort((a, b) =>
                     a.toLowerCase().localeCompare(b.toLowerCase())
                 ));
             });
@@ -48,120 +168,6 @@ class CSVFieldsMappingDialog extends React.Component {
         }
     }
 
-    render() {
-        const csvFile = this.props.params.find(elem => elem.type == "file");
-
-        let dragDropStandaloneParams = [], dragDropParamsStack = [];
-        for (let param of this.props.params) {
-            if (param.type == "dragDrop") {
-               if (param.size != 1) {
-                   dragDropStandaloneParams.push(param);
-               } else {
-                   dragDropParamsStack.push(param);
-               }
-            }
-        }
-
-        const dragDropParams = this.props.params.reduce((params, param, idx) => {
-            if (param.type == "dragDrop") {
-                params.push(Object.assign({}, param, {idx: idx}));
-            }
-
-            return params;
-        }, []);
-
-        return (
-            <Modal size="fullscreen" open={this.props.isOpen} onClose={this.props.onClose}>
-                <Modal.Header>
-                    {this.props.step.name}
-
-                    <Input placeholder={csvFile.description} style={{"float": "right"}}
-                        size="mini" value={(csvFile.value != null) ? csvFile.value : ''}>
-                        <input disabled/>
-
-                        <span style={{display: "none"}}>
-                        <input type="file" ref={input => {this.uploadCSVButton = input}}
-                            onChange={this.uploadCSVFile.bind(this, csvFile)}/>
-                        </span>
-
-                        <Button onClick={() => {this.uploadCSVButton.click()}}>
-                            {csvFile.name}
-                        </Button>
-                    </Input>
-                </Modal.Header>
-
-                <Modal.Content>
-                    <Modal.Description>
-                        <Grid stackable>
-                            <Grid.Column width={8}>
-                                <DragDropParam parameter={dragDropParams[0]}
-                                    onChange={this.props.onChange.bind(this, 0,
-                                            dragDropParams[0].idx)}/>
-                            </Grid.Column>
-
-                            <Grid.Column width={8}>
-                                {dragDropParams.slice(1).map((param, idx) =>
-                                    <DragDropParam key={idx} parameter={param}
-                                        onChange={this.props.onChange.bind(this, 0,
-                                            param.idx)}/>
-                                )}
-                            </Grid.Column>
-                        </Grid>
-                    </Modal.Description>
-                </Modal.Content>
-
-                <Modal.Actions>
-                    <Button color='green' inverted onClick={this.props.goToNextPage}>
-                        Next
-                    </Button>
-                </Modal.Actions>
-            </Modal>
-        );
-    }
-}
-
-const DragDropContainer = DragDropContext(HTML5Backend)(CSVFieldsMappingDialog);
-
-// TODO: Remove params props field
-function Param(props) {
-    switch(props.param.type) {
-        case "checkbox":
-            return <CheckboxParam parameter={props.param} onChange={props.onChange}/>;
-        case "radio":
-            return <RadioParam parameter={props.param} onChange={props.onChange}/>;
-        case "dropdown":
-            return <DropdownParam parameter={props.param} options={props.dataSet}
-                onChange={props.onChange}/>;
-        case "dropdownEdit":
-            return <DropdownEditParam parameter={props.param} options={props.dataSet}
-                onChange={props.onChange}/>;
-        case "slider":
-            return <SliderParam parameter={props.param} disabled={props.disabled}
-                onChange={props.onChange}/>;
-        case "range":
-            return <RangeParam parameter={props.param} dataSet={props.dataSet}
-                onChange={props.onChange} disabled={props.disabled}/>;
-        case "text":
-        case "dragDrop":
-        default:
-            return <TextParam parameter={props.param} onChange={props.onChange}/>;
-    }
-}
-
-class ParametersDialog extends React.Component {
-    constructor() {
-        super();
-
-        this.state = {
-            CSVOperationActive: false,
-            page: 0
-        };
-
-        this.runModel = this.runModel.bind(this);
-        this.goToNextPage = this.goToNextPage.bind(this);
-        this.readCSVColumn = this.readCSVColumn.bind(this);
-    }
-
     runModel() {
         const {step, params} = this.props;
 
@@ -170,20 +176,39 @@ class ParametersDialog extends React.Component {
 
             switch (param.type) {
             case "range":
-                return '';
                 if (param.source != null) {
-                    const srcParam = params[param.source];
-                    return this.getCSVColumnValues(srcParam.value[0])[param.value];
+                    const srcParam = params[param.source.id];
+                    // TODO: Support handling of multiple values???
+                    const csvValues = this.getCSVColumnValues(srcParam.value[0]);
+                    return csvValues[param.value[0]] + ", " + csvValues[param.value[1] + 1];
                 }
 
-                if (param.scale != null) {
-                    return param.value.map(val => val / param.scale).join(', ');
+                if (param.returnValue != null) {
+                    const retVal = param.returnValue;
+
+                    const k = (retVal[1] - retVal[0]) / (value[1] - value[0]);
+                    const l = (retVal[0] - k*value[0]);
+
+                    /* Linear mapping from input to ouptput range */
+                    return param.value.map(val => (k*val + l)).join(", ");
                 }
 
                 return param.value.join(', ');
 
             case "slider":
-                return (param.scale != null) ? param.value / param.scale : param.value;
+                const {value} = param;
+
+                if (param.returnValue != null) {
+                    const retVal = param.returnValue;
+
+                    const k = (retVal[1] - retVal[0]) / (value[1] - value[0]);
+                    const l = (retVal[0] - k*value[0]);
+
+                    /* Linear mapping from input to ouptput range */
+                    return param.value.map(val => (k*val + l)).join(", ");
+                }
+
+                return value.join(", ");
 
             case "radio":
                 return param.returnValue[param.value];
@@ -207,25 +232,23 @@ class ParametersDialog extends React.Component {
         this.props.onClose();
     }
 
-    goToNextPage() {
-        this.setState({page: this.state.page + 1});
-    }
-
     readCSVColumn(fieldname, unique=false) {
-        if (!this.state.CSVOperationActive) {
-            this.setState({CSVOperationActive: true});
+        if (!this.CSVOperationActive) {
+            this.CSVOperationActive = true;
 
             const fetchCSVColumnRequest = new XMLHttpRequest();
 
             fetchCSVColumnRequest.addEventListener("load", request => {
                 const fieldValues = JSON.parse(request.target.response);
+
+                // TODO Add sorting function
                 this.props.updateCSVColumnValues(fieldname, fieldValues.sort());
-                this.setState({CSVOperationActive: false});
+                this.CSVOperationActive = false;
             });
 
             fetchCSVColumnRequest.addEventListener("error", request => {
                 // TODO: Handle error
-                this.setState({CSVOperationActive: false});
+                this.CSVOperationActive = false;
             });
 
             const CSVFieldnameForm = new FormData();
@@ -237,74 +260,90 @@ class ParametersDialog extends React.Component {
         }
     }
 
-    getCSVColumnValues(fieldname) {
-        if (!this.props.CSVColumnValues.hasOwnProperty(fieldname)) {
-            this.readCSVColumn(fieldname, true);
-        }
+    validateParams() {
+        // TODO:Validate current page parameters
+        return true;
+    }
 
+    getCSVColumnValues(fieldname) {
         return this.props.CSVColumnValues[fieldname];
     }
 
+    goToPrevPage() {
+        this.setState({page: this.state.page - 1});
+    }
+
+    goToNextPage() {
+        if (!this.validateParams()) return;
+
+        if (this.state.page < this.props.step.layout.length - 1) {
+            this.setState({page: this.state.page + 1});
+        } else {
+            this.runModel();
+        }
+    }
+
     render() {
+        // TODO: Consider
         if (this.props.step == null) return null;
 
         const {step, params} = this.props;
+        const pageLayout = step.layout;
 
-        /*
-        if (step.index == 0 && this.state.page == 0) {
-            return <DragDropContainer {...this.props} params={stepParams}
-                CSVLoading={this.state.CSVOperationActive}
-                goToNextPage={this.goToNextPage}/>;
+        const {page} = this.state;
+
+        let pageHeaderParams = [];
+        if (pageLayout[page].header != null) {
+            pageHeaderParams = pageLayout[page].header;
         }
-        */
+
+        let pageBodyParamIds = [];
+        if (pageLayout[page].body != null) {
+            pageBodyParamIds = pageLayout[page].body;
+        }
 
         return (
-            <Modal size="fullscreen" onOpen={() => this.setState({page: 0})}
-                open={this.props.isOpen} onClose={this.props.onClose}>
-                <Modal.Header> {step.name} </Modal.Header>
+            <Modal size="fullscreen" open={this.props.isOpen} onClose={this.props.onClose}>
+                <Modal.Header style={{display: "flex"}}>
+                    <div style={{flex: 1}}> {step.name} </div>
+
+                    <Grid style={{flex: 1}}>
+                        {pageHeaderParams.map((paramId, idx) =>
+                            <Grid.Column key={idx}>
+                                <FileInputParam parameter={params[paramId]}
+                                    onChange={this.uploadCSVFile.bind(this, paramId)}/>
+                            </Grid.Column>
+                        )}
+                    </Grid>
+                </Modal.Header>
 
                 <Modal.Content>
                     <Form>
-                        {step.parameters.reduce((validParams, paramId, idx) => {
-                            const param = params[paramId];
-
-                            if (param.type != "dragDrop") {
-                                let disabled = false, dataSet;
-
-                                if (param.control != null) {
-                                    const controlParam = params[param.control.id];
-                                    disabled = param.control.enableValue != controlParam.value;
-                                }
-
-                                if (param.source != null) {
-                                    const srcParam = params[param.source];
-                                    // TODO: Handle properly
-                                    if (srcParam.value != null) {
-                                        dataSet = this.getCSVColumnValues(srcParam.value[0]);
-                                    }
-                                }
-
-                                validParams.push(
-                                    <Param onChange={this.props.onChange.bind(this, paramId)}
-                                        key={idx} param={param} dataSet={dataSet} disabled={disabled}
-                                    />
-                                );
-                            }
-
-                            return validParams;
-                        }, [])}
+                        <Grid stretched stackable columns="equal">
+                            {pageBodyParamIds.map((childParamIds, idx) =>
+                                <PageParams key={idx} params={params} paramIds={childParamIds}
+                                    CSVColumnValues={this.props.CSVColumnValues}
+                                    onChange={this.props.onChange}
+                                />
+                            )}
+                        </Grid>
                     </Form>
                 </Modal.Content>
 
                 <Modal.Actions>
-                    <Button type="submit" color='green' inverted onClick={this.runModel}>
-                        <Icon name='checkmark'/> Run
+                    <Button negative disabled={page <= 0} onClick={this.goToPrevPage}>
+                        Back
+                    </Button>
+                    <Button positive onClick={this.goToNextPage}>
+                        {(page < pageLayout.length - 1) ? "Next" : "Run"}
                     </Button>
                 </Modal.Actions>
             </Modal>
         );
     }
 }
+
+const DragDropContainer = DragDropContext(HTML5Backend)(ParametersDialog);
 
 class ParametersBox extends React.Component {
 	constructor() {
@@ -316,13 +355,13 @@ class ParametersBox extends React.Component {
 			modelsInfo: {},
 
 
-            /* Currently selected model */
+            /* Name of the currently selected model */
             modelId: null,
 
             /* Index of the current step */
-            currStepIdx: null,
+            stepIdx: null,
 
-            /* Parameters of selected model */
+            /* Parameters of currently selected model */
             modelParams: {},
 
 
@@ -332,6 +371,7 @@ class ParametersBox extends React.Component {
             /* Controls whether parameters dialog should be open */
             isParamsDialogOpen: false,
 
+            // TODO:
             errorMsg: null,
 
             newSession: 0,
@@ -368,6 +408,7 @@ class ParametersBox extends React.Component {
 	}
 
     /* TODO: Not used at the moment */
+    /*
 	fetchModelDescription(model) {
 		const fetchModelDescriptionRequest = new XMLHttpRequest();
 
@@ -396,6 +437,7 @@ class ParametersBox extends React.Component {
 		fetchModelDescriptionRequest.open("POST", "/fetch_model_description/");
 		fetchModelDescriptionRequest.send(modelNameForm);
 	}
+    */
 
     updateCSVColumnValues(fieldname, values) {
         const CSVColumnValues = Object.assign({}, this.state.CSVColumnValues);
@@ -417,7 +459,7 @@ class ParametersBox extends React.Component {
 		const runModelRequest = new XMLHttpRequest();
 
 		runModelRequest.addEventListener("load", request => {
-            this.setState({currStepIdx: this.state.currStepIdx + 1});
+            this.setState({stepIdx: this.state.stepIdx + 1});
             this.props.returnModelOutput(JSON.parse(request.target.response));
 		});
 
@@ -428,7 +470,7 @@ class ParametersBox extends React.Component {
         const modelForm = new FormData();
         modelForm.set("model", JSON.stringify(this.state.modelId));
 
-        modelForm.set("step", this.state.currStepIdx);
+        modelForm.set("step", this.state.stepIdx);
         modelForm.set("sessionID", JSON.stringify(this.state.sessionID));
         modelForm.set("newSession", JSON.stringify(this.state.newSession));
         modelForm.set("saveSession", JSON.stringify(this.state.saveSession));
@@ -463,7 +505,7 @@ class ParametersBox extends React.Component {
 
         this.setState({
             modelId: modelId,
-            currStepIdx: 0,
+            stepIdx: 0,
 
             modelParams: modelParams
         });
@@ -472,20 +514,20 @@ class ParametersBox extends React.Component {
     openParamsDialog(event, data) {
         if (!data.disabled) {
             this.setState({
-                currStepIdx: data.index,
+                stepIdx: data.index,
                 isParamsDialogOpen: true
             });
         }
     }
 
 	render() {
-        const {currStepIdx, modelParams} = this.state;
+        const {modelsInfo, stepIdx, modelParams} = this.state;
 
-        const model = this.state.modelsInfo[this.state.modelId];
-        const currStep = (model != null) ? model.steps[currStepIdx] : null;
+        const model = modelsInfo[this.state.modelId];
+        const step = (model != null) ? model.steps[stepIdx] : null;
 
-        const modelDropdownChoice = Object.keys(this.state.modelsInfo).map(modelId => ({
-            text: this.state.modelsInfo[modelId].name,
+        const modelDropdownChoice = Object.keys(modelsInfo).map(modelId => ({
+            text: modelsInfo[modelId].name,
             value: modelId
         }));
 
@@ -501,17 +543,18 @@ class ParametersBox extends React.Component {
 
                     <Menu vertical fluid>
                         <Menu.Item>
-                            <Dropdown scrolling placeholder="Select model"
+                            <Dropdown selection scrolling placeholder="Select model"
                                 options={modelDropdownChoice}
                                 onChange={this.changeModel}/>
                         </Menu.Item>
 
+                        {/*TODO: Add space*/}
                         <Menu.Item/>
 
                         {model != null && model.steps.map((step, idx) =>
                             <Menu.Item name={idx+1 + ". " + step.name} key={idx} index={idx}
-                                active={currStepIdx === idx}
-                                disabled={idx > currStepIdx}
+                                active={stepIdx === idx}
+                                disabled={idx > stepIdx}
                                 onClick={this.openParamsDialog}/>
                         )}
                     </Menu>
@@ -519,12 +562,13 @@ class ParametersBox extends React.Component {
                     <Button primary> Export as CSV </Button>
                 </Form>
 
-                <ParametersDialog isOpen={this.state.isParamsDialogOpen}
+                <DragDropContainer isOpen={this.state.isParamsDialogOpen}
                     onClose={() => {this.setState({isParamsDialogOpen: false})}}
                     updateCSVColumnValues={this.updateCSVColumnValues}
                     CSVColumnValues={this.state.CSVColumnValues}
 
-                    step={currStep}
+                    step={step}
+                    stepIdx={stepIdx}
                     params={modelParams}
 
                     onChange={this.changeParamValue}

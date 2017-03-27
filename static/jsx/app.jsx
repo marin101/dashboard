@@ -27,12 +27,14 @@ class Prototype extends React.Component {
 
 	render() {
 		return (
-			<Container fluid style={{"height": "100%", "overflow": "hidden"}}>
+			<Container fluid style={{minHeight: "100vh", overflow: "hidden"}}>
 				<Menu fixed="top">
-					<Menu.Item header> Analytical wizards </Menu.Item>
+					<Menu.Item header>
+                        <img src="/static/images/logo.png" style={{width: "1em", height: "1em"}}/>
+                    </Menu.Item>
 				</Menu>
 
-				<SplitPane split="vertical" defaultSize="20%" maxSize="98%" style={{"marginTop":"3em"}}>
+				<SplitPane split="vertical" defaultSize="20%" maxSize="98%" style={{marginTop: "3em"}}>
 					<ParametersBox returnModelOutput={this.onModelOutput}/>
 
 					<SplitPane split="horizontal" primary="second" defaultSize="35%" maxSize="98%">

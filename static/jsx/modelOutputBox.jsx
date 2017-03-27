@@ -4,33 +4,14 @@ import ReactDOM from "react-dom";
 import {Header} from "semantic-ui-react"
 
 class ModelOutputBox extends React.Component {
-	constructor() {
-		super();
-
-		this.state = {
-			modelOutput: null
-		}
-	}
-
-	componentDidMount() {
-		// TODO: Is output stream or one-time event???
-		let modelOutputStream = new EventSource("/output_stream/");
-
-		modelOutputStream.addEventListener("error", error => {
-			console.log(error);
-		});
-
-		modelOutputStream.addEventListener("model_output", message => {
-			this.setState({modelOutput: JSON.parse(message.data)});
-		});
-	}
-
 	render() {
 		return (
-			<div style={{"width": "100%", "maringTop": "1px", "marginLeft": "-1px"}}>
+			<div style={{height: "100%", width: "100%", maringTop: "1px", marginLeft: "-1px"}}>
 				<Header dividing block>
 					Model Output
 				</Header>
+
+                {/*<object data="/static/graf.html" style={{width: "100%", height: "100%"}}> Kita </object>*/}
 			</div>
 		);
 	}
