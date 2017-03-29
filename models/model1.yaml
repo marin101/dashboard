@@ -27,7 +27,7 @@
                         # 2nd column
                         [
                             # Parameters stacked in rows
-                            [depvar, geobrand, subject, period, lst_dim]
+                            depvar, geobrand, subject, period, lst_dim
                         ]
                     ]
 
@@ -96,13 +96,17 @@
             name: "Input data",
             description: "Upload input data in CSV format",
 
-            target: "ind_vars"
+            target: "ind_vars",
+
+            returnValue: "userData.csv"
         },
 
         ind_vars: {
             type: "dragDrop",
             name: "Independent variables",
             description: "Independent variables description",
+
+            group: "giveItAnyName",
 
             size: 5
         },
@@ -111,6 +115,8 @@
             type: "dragDrop",
             name: "Target variable",
             description: "What you want to model",
+
+            group: "giveItAnyName",
 
             size: 1,            # Size of the box
             capacity: 1
@@ -121,6 +127,8 @@
             name: "Geo-Brand",
             description: "name of a column that represents a Brand or Geography",
 
+            group: "giveItAnyName",
+
             size: 1,
             capacity: 1
         },
@@ -129,6 +137,8 @@
             type: "dragDrop",
             name: "Subject",
             description: "Level at which random effects will be reported",
+
+            group: "giveItAnyName",
 
             size: 1,
             capacity: 1
@@ -139,6 +149,8 @@
             name: "Period",
             description: "Column which represents time period",
 
+            group: "giveItAnyName",
+
             size: 1,
             capacity: 1
           },
@@ -148,7 +160,8 @@
             name: "Analysis period",
             description: "Periods within this range will be included in the model",
 
-            source: {id: period, action: "readCSV", unique: true}
+            # Read unique CSV columns defined by the period from file1
+            source: {id: period, action: "readCSV", file: "file1", unique: true}
           },
 
         datefmt: {
@@ -166,6 +179,8 @@
             type: "dragDrop",
             name: "Columns to ignore",
             description: "These will NOT be used for modeling",
+
+            group: "giveItAnyName",
 
             defaultValue: [],
 
@@ -257,7 +272,7 @@
             name: "Brands/Geographies to analyze",
             description: "Leave blank to analyze ALL Brands/Geographies",
 
-            source: {id: geobrand, action: "readCSV", unique: true}
+            source: {id: geobrand, action: "readCSV", file: "file1", unique: true}
           },
 
         use_seas: {
@@ -277,7 +292,7 @@
             description: "Dummy seasonality factors will be used (leave blank to let model decide the periods)",
 
             defaultValue: [],
-            source: {id: period, action: "readCSV", unique: true}
+            source: {id: period, action: "readCSV", file: "file1", unique: true}
           },
 
         lst_rand: {
@@ -347,7 +362,7 @@
             name: "Drop Periods",
             description: "These periods will be excluded from the model (select one or more)",
 
-            source: {id: period, action: "readCSV", unique: true}
+            source: {id: period, action: "readCSV", file: "file1", unique: true}
         },
 
         drop_subject: {
@@ -355,7 +370,7 @@
             name: "Drop Subjects",
             description: "These subjects will be excluded from the model (provide a comma-separated list)",
 
-            source: {id: subject, action: "readCSV", unique: true}
+            source: {id: subject, action: "readCSV", file: "file1", unique: true}
         },
 
         use_trendseas: {

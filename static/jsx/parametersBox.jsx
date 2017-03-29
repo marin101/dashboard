@@ -80,11 +80,17 @@ function PageParams(props) {
         }
     }
 
-    return (
+    const paramElem = (
         <Param onChange={props.onChange.bind(this, paramIds)}
             param={param} dataSet={dataSet} disabled={disabled}
         />
     );
+
+    if (props.isGridRow) {
+        return <Grid.Row> {paramElem} </Grid.Row>;
+    }
+
+    return <Grid.Column> {paramElem} </Grid.Column>;
 }
 
 class ParametersDialog extends React.Component {
@@ -98,6 +104,7 @@ class ParametersDialog extends React.Component {
         this.CSVOperationActive = false;
 
         this.runModel = this.runModel.bind(this);
+        this.resetParams = this.resetParams.bind(this);
         this.goToPrevPage = this.goToPrevPage.bind(this);
         this.goToNextPage = this.goToNextPage.bind(this);
         this.readCSVColumn = this.readCSVColumn.bind(this);
@@ -117,14 +124,17 @@ class ParametersDialog extends React.Component {
 
             if (param.source != null && param.source.action == "readCSV") {
                 const uniqueValuesOnly = param.source.unique == true;
-                const srcParam = params[param.source.id];
 
-                // TODO: Change CSVColumnValues when changing srcParam.value
-                if (srcParam.value != null) {
-                    srcParam.value.forEach(csvFieldname => {
+                const srcColParam = params[param.source.id];
+                const srcFileParam = params[param.source.file];
+                const filename = srcFileParam.returnValue;
+
+                // TODO: Change CSVColumnValues when changing srcColParam.value
+                if (srcColParam.value != null) {
+                    srcColParam.value.forEach((fieldname, idx) => {
                         /* Read only those that are were not already read */
-                        if (!CSVColumnValues.hasOwnProperty(csvFieldname)) {
-                            this.readCSVColumn(csvFieldname, uniqueValuesOnly);
+                        if (!CSVColumnValues.hasOwnProperty(fieldname)) {
+                            this.readCSVColumn(filename, fieldname, uniqueValuesOnly);
                         }
                     });
                 }
@@ -132,7 +142,7 @@ class ParametersDialog extends React.Component {
         }
 
         /* Page must be reset when step changes */
-        if (this.props.stateIdx != nextProps.stateIdx) {
+        if (this.props.stepIdx != nextProps.stepIdx) {
             this.setState({page: 0});
         }
     }
@@ -171,13 +181,14 @@ class ParametersDialog extends React.Component {
     runModel() {
         const {step, params} = this.props;
 
-        this.props.onRunModel(step.parameters.map(paramId => {
+        this.props.onRunModel(step, step.parameters.map(paramId => {
             const param = params[paramId];
 
             switch (param.type) {
             case "range":
                 if (param.source != null) {
                     const srcParam = params[param.source.id];
+
                     // TODO: Support handling of multiple values???
                     const csvValues = this.getCSVColumnValues(srcParam.value[0]);
                     return csvValues[param.value[0]] + ", " + csvValues[param.value[1] + 1];
@@ -185,9 +196,10 @@ class ParametersDialog extends React.Component {
 
                 if (param.returnValue != null) {
                     const retVal = param.returnValue;
+                    const choice = param.choice;
 
-                    const k = (retVal[1] - retVal[0]) / (value[1] - value[0]);
-                    const l = (retVal[0] - k*value[0]);
+                    const k = (retVal[1] - retVal[0]) / (choice[1] - choice[0]);
+                    const l = (retVal[0] - k*choice[0]);
 
                     /* Linear mapping from input to ouptput range */
                     return param.value.map(val => (k*val + l)).join(", ");
@@ -200,15 +212,16 @@ class ParametersDialog extends React.Component {
 
                 if (param.returnValue != null) {
                     const retVal = param.returnValue;
+                    const choice = param.choice;
 
-                    const k = (retVal[1] - retVal[0]) / (value[1] - value[0]);
-                    const l = (retVal[0] - k*value[0]);
+                    /* Linear mapping coefficients */
+                    const k = (retVal[1] - retVal[0]) / (choice[1] - choice[0]);
+                    const l = (retVal[0] - k*choice[0]);
 
-                    /* Linear mapping from input to ouptput range */
-                    return param.value.map(val => (k*val + l)).join(", ");
+                    return k*value + l;
                 }
 
-                return value.join(", ");
+                return value;
 
             case "radio":
                 return param.returnValue[param.value];
@@ -216,11 +229,14 @@ class ParametersDialog extends React.Component {
             case "checkbox":
                 return param.value ? param.returnValue[1] : param.returnValue[0];
 
+            case "file":
+                return (param.returnValue != null) ? param.returnValue : param.value;
+
             case "dragDrop":
             case "dropdown":
             case "dropdownEdit":
-                // TODO: This check is unnecessary after finishing dragDrop
-                if (param.value == null || param.value == '') return '';
+                // TODO: Remove when dropdown is fixed
+                if (!Array.isArray(param.value)) return '';
                 return param.value.join(', ');
 
             case "text":
@@ -232,7 +248,7 @@ class ParametersDialog extends React.Component {
         this.props.onClose();
     }
 
-    readCSVColumn(fieldname, unique=false) {
+    readCSVColumn(filename, fieldname, unique=false) {
         if (!this.CSVOperationActive) {
             this.CSVOperationActive = true;
 
@@ -241,7 +257,7 @@ class ParametersDialog extends React.Component {
             fetchCSVColumnRequest.addEventListener("load", request => {
                 const fieldValues = JSON.parse(request.target.response);
 
-                // TODO Add sorting function
+                // TODO Add sorting function for strings
                 this.props.updateCSVColumnValues(fieldname, fieldValues.sort());
                 this.CSVOperationActive = false;
             });
@@ -252,10 +268,11 @@ class ParametersDialog extends React.Component {
             });
 
             const CSVFieldnameForm = new FormData();
-            CSVFieldnameForm.set("fieldname", JSON.stringify(fieldname))
-            CSVFieldnameForm.set("unique", JSON.stringify(unique))
+            CSVFieldnameForm.set("fieldname", fieldname)
+            CSVFieldnameForm.set("filename", filename)
+            CSVFieldnameForm.set("unique", unique)
 
-            fetchCSVColumnRequest.open("POST", "/fetch_CSV_column/");
+            fetchCSVColumnRequest.open("POST", "/fetch_csv_column/");
             fetchCSVColumnRequest.send(CSVFieldnameForm);
         }
     }
@@ -283,23 +300,37 @@ class ParametersDialog extends React.Component {
         }
     }
 
+    resetParams() {
+        const {step, params} = this.props;
+
+        const stepParams = step.parameters.map(paramId =>
+            params[paramId]
+        );
+
+        this.props.resetParams(stepParams);
+
+        step.parameters.forEach(paramId =>
+            this.props.onChange(paramId, params[paramId].value)
+        );
+    }
+
     render() {
         // TODO: Consider
         if (this.props.step == null) return null;
 
-        const {step, params} = this.props;
-        const pageLayout = step.layout;
-
         const {page} = this.state;
 
+        const {step, params} = this.props;
+        const pageLayout = step.layout[page];
+
         let pageHeaderParams = [];
-        if (pageLayout[page].header != null) {
-            pageHeaderParams = pageLayout[page].header;
+        if (pageLayout.header != null) {
+            pageHeaderParams = pageLayout.header;
         }
 
         let pageBodyParamIds = [];
-        if (pageLayout[page].body != null) {
-            pageBodyParamIds = pageLayout[page].body;
+        if (pageLayout.body != null) {
+            pageBodyParamIds = pageLayout.body;
         }
 
         return (
@@ -331,11 +362,12 @@ class ParametersDialog extends React.Component {
                 </Modal.Content>
 
                 <Modal.Actions>
+                    <Button secondary content="Reset" onClick={this.resetParams}/>
                     <Button negative disabled={page <= 0} onClick={this.goToPrevPage}>
                         Back
                     </Button>
                     <Button positive onClick={this.goToNextPage}>
-                        {(page < pageLayout.length - 1) ? "Next" : "Run"}
+                        {(page < step.layout.length - 1) ? "Next" : "Run"}
                     </Button>
                 </Modal.Actions>
             </Modal>
@@ -354,9 +386,15 @@ class ParametersBox extends React.Component {
             /* Object with description of all models */
 			modelsInfo: {},
 
+            /* List of the user session names for the current model */
+            sessions: [],
+
 
             /* Name of the currently selected model */
             modelId: null,
+
+            /* Name of the currently selected session */
+            sessionId: null,
 
             /* Index of the current step */
             stepIdx: null,
@@ -373,18 +411,19 @@ class ParametersBox extends React.Component {
 
             // TODO:
             errorMsg: null,
-
-            newSession: 0,
-            saveSession: 0,
-            sessionID: null
 		};
-
+        this.createSession = this.createSession.bind(this);
         this.fetchModelsMetadata = this.fetchModelsMetadata.bind(this);
-
+        this.selectModel = this.selectModel.bind(this);
         this.runModel = this.runModel.bind(this);
-        this.changeModel = this.changeModel.bind(this);
+
+        this.fetchPlots = this.fetchPlots.bind(this);
+        this.fetchSessions = this.fetchSessions.bind(this);
+        this.selectSession = this.selectSession.bind(this);
+
         this.changeParamValue = this.changeParamValue.bind(this);
         this.openParamsDialog = this.openParamsDialog.bind(this);
+
         this.updateCSVColumnValues = this.updateCSVColumnValues.bind(this);
 	}
 
@@ -396,7 +435,10 @@ class ParametersBox extends React.Component {
         const fetchModelsMetadataRequest = new XMLHttpRequest();
 
         fetchModelsMetadataRequest.addEventListener("load", request => {
-            this.setState({modelsInfo: JSON.parse(request.target.response)});
+            const {username, models} = JSON.parse(request.target.response);
+
+            this.setState({modelsInfo: models});
+            this.props.updateUsername(username);
         });
 
         fetchModelsMetadataRequest.addEventListener("error", request => {
@@ -455,25 +497,31 @@ class ParametersBox extends React.Component {
     }
 
     // TODO: Add session ID
-	runModel(params) {
+	runModel(step, params) {
 		const runModelRequest = new XMLHttpRequest();
 
 		runModelRequest.addEventListener("load", request => {
-            this.setState({stepIdx: this.state.stepIdx + 1});
-            this.props.returnModelOutput(JSON.parse(request.target.response));
+            const {consoleOutput, plots} = JSON.parse(request.target.response);
+            this.props.returnModelOutput(consoleOutput, plots);
+
+            const model = this.state.modelsInfo[this.state.modelId];
+
+            if (this.state.stepIdx + 1 < model.steps.length) {
+                this.setState({stepIdx: this.state.stepIdx + 1});
+            }
 		});
 
 		runModelRequest.addEventListener("error", request => {
             this.setState({errorMsg: request.target.response});
 		});
 
-        const modelForm = new FormData();
-        modelForm.set("model", JSON.stringify(this.state.modelId));
+        const stepData = {"index": this.state.stepIdx + 1, "id": step.id};
 
-        modelForm.set("step", this.state.stepIdx);
-        modelForm.set("sessionID", JSON.stringify(this.state.sessionID));
-        modelForm.set("newSession", JSON.stringify(this.state.newSession));
-        modelForm.set("saveSession", JSON.stringify(this.state.saveSession));
+        const modelForm = new FormData();
+        modelForm.set("model", this.state.modelId);
+        modelForm.set("sessionId", this.state.sessionId);
+
+        modelForm.set("step", JSON.stringify(stepData));
         modelForm.set("parameters", JSON.stringify(params));
 
 		runModelRequest.open("POST", "/run_model/");
@@ -489,7 +537,41 @@ class ParametersBox extends React.Component {
 		this.setState({modelParams: newParams});
 	}
 
-    changeModel(event, data) {
+    fetchPlots(modelId, sessionId, step) {
+        const fetchPlotsRequest= new XMLHttpRequest();
+
+        fetchPlotsRequest.addEventListener("load", request => {
+            this.props.fetchPlots(JSON.parse(request.target.response));
+        });
+
+        fetchPlotsRequest.addEventListener("error", request => {
+            // TODO: Handle error
+        });
+
+        const getPlotsForm = new FormData();
+
+        getPlotsForm.append("model", modelId);
+        getPlotsForm.append("sessionId", sessionId);
+
+        getPlotsForm.append("stepId", step.id);
+
+        fetchPlotsRequest.open("POST", "/fetch_plots/");
+        fetchPlotsRequest.send(getPlotsForm);
+    }
+
+    selectSession(event, data) {
+        const sessionId = data.value;
+
+        this.setState({sessionId: sessionId});
+        this.props.selectSession(sessionId);
+
+        const {modelsInfo, stepIdx} = this.state;
+        const model = modelsInfo[this.state.modelId];
+
+        this.fetchPlots(this.state.modelId, sessionId, model.steps[stepIdx]);
+    }
+
+    selectModel(event, data) {
         const modelId = data.value;
         const model = this.state.modelsInfo[modelId];
 
@@ -509,6 +591,26 @@ class ParametersBox extends React.Component {
 
             modelParams: modelParams
         });
+
+        this.fetchSessions(modelId);
+    }
+
+    fetchSessions(modelId) {
+        const fetchSessionsRequest= new XMLHttpRequest();
+
+        fetchSessionsRequest.addEventListener("load", request => {
+            this.setState({sessions: JSON.parse(request.target.response)});
+        });
+
+        fetchSessionsRequest.addEventListener("error", request => {
+            // TODO: Handle error
+        });
+
+        const getSessionsForm = new FormData();
+        getSessionsForm.append("model", modelId);
+
+        fetchSessionsRequest.open("POST", "/fetch_sessions/");
+        fetchSessionsRequest.send(getSessionsForm);
     }
 
     openParamsDialog(event, data) {
@@ -520,32 +622,74 @@ class ParametersBox extends React.Component {
         }
     }
 
+    createSession(e, data) {
+        const crateSessionRequest= new XMLHttpRequest();
+
+        crateSessionRequest.addEventListener("load", request => {
+            const sessionId = JSON.parse(request.target.response);
+
+            this.setState({
+                sessions: this.state.sessions.concat(sessionId),
+                sessionId: sessionId
+            });
+
+            this.props.selectSession(sessionId);
+        });
+
+        crateSessionRequest.addEventListener("error", request => {
+            // TODO: Handle error
+        });
+
+        const createSessionForm = new FormData();
+        createSessionForm.append("model", this.state.modelId);
+
+        crateSessionRequest.open("POST", "/create_session/");
+        crateSessionRequest.send(createSessionForm);
+    }
+
 	render() {
         const {modelsInfo, stepIdx, modelParams} = this.state;
 
         const model = modelsInfo[this.state.modelId];
         const step = (model != null) ? model.steps[stepIdx] : null;
 
-        const modelDropdownChoice = Object.keys(modelsInfo).map(modelId => ({
+        const modelDropdownChoice = Object.keys(modelsInfo).map((modelId, idx) => ({
             text: modelsInfo[modelId].name,
-            value: modelId
+            value: modelId,
+            key: idx
+        }));
+
+        const sessionDropdownChoice = this.state.sessions.map((sessionId, idx) => ({
+            value: sessionId,
+            text: sessionId,
+            key: idx
         }));
 
 		return (
 			<div>
                 <Form size="mini">
                     <Menu fluid>
-                        <Menu.Item name="New session" onClick={this.restartSession}>
+                        <Menu.Item name="New session" disabled={model == null}
+                            onClick={this.createSession}>
                         </Menu.Item>
+
+                        {/* TODO:
                         <Menu.Item name="Save session" onClick={this.saveSession}>
                         </Menu.Item>
+                        */}
                     </Menu>
 
                     <Menu vertical fluid>
                         <Menu.Item>
                             <Dropdown selection scrolling placeholder="Select model"
                                 options={modelDropdownChoice}
-                                onChange={this.changeModel}/>
+                                onChange={this.selectModel}/>
+
+                            <Dropdown selection scrolling placeholder="Select session"
+                                value={this.state.sessionId}
+                                options={sessionDropdownChoice}
+                                onChange={this.selectSession}
+                                disabled={model == null}/>
                         </Menu.Item>
 
                         {/*TODO: Add space*/}
@@ -566,6 +710,7 @@ class ParametersBox extends React.Component {
                     onClose={() => {this.setState({isParamsDialogOpen: false})}}
                     updateCSVColumnValues={this.updateCSVColumnValues}
                     CSVColumnValues={this.state.CSVColumnValues}
+                    resetParams={this.resetParamsToDefaults}
 
                     step={step}
                     stepIdx={stepIdx}

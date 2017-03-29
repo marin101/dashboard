@@ -20,6 +20,7 @@ module.exports = {
 		'react',
 		'react-dom',
 		'react-split-pane',
+		'react-split-panel',
 
         'rc-slider',
 

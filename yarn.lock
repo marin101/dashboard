@@ -2622,6 +2622,10 @@ react-split-pane@^0.1.57:
     inline-style-prefixer "^3.0.0"
     react-style-proptype "^2.0.1"
 
+react-split-panel@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/react-split-panel/-/react-split-panel-2.0.1.tgz#14b36e3f5b6ea257b95dca09925ce2dc0392ba5b"
+
 react-style-proptype@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/react-style-proptype/-/react-style-proptype-2.0.1.tgz#6b29b9bceb11d6be279ffee3debe1fe1edbee97b"

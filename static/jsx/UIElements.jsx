@@ -30,6 +30,7 @@ function TextParam(props) {
     const {name, description, value='', defaultValue, min, max} = props.parameter;
 
     let valueType;
+    // TODO: Verify that it works
     switch (props.parameter.validation) {
         case "integer":
             valueType = "number";
@@ -116,12 +117,14 @@ function DropdownParam(props) {
 
 class DropdownEditParam extends React.Component {
     componentWillMount() {
+        return;
         const value = this.props.parameter.value;
 
         /* Initialize dropdown values */
-        if (!Array.isArray(value) || value.length != this.props.options.length) {
+        if (!Array.isArray(value) || (this.props.options != null && value.length != this.props.options.length)) {
             const newValue = [];
 
+            if (this.props.options == null) return;
             for (let i = 0; i < this.props.options.length; i++) {
                 newValue.push(this.props.parameter.defaultValue);
             }
@@ -217,6 +220,7 @@ function SliderParam(props) {
 class RangeParam extends React.Component {
     componenWillReceiveProps(nextProps) {
         if (nextProps.dataSet != null && nextProps.parameter.value == null) {
+            console.log(nextProps.dataSet)
             nextProps.onChange([0, nextProps.dataSet.length - 1]);
         }
     }
@@ -254,7 +258,7 @@ class RangeParam extends React.Component {
                 const val = isInteger ? Math.round(i) : i;
                 marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
             }
-        } else {
+        } else if (this.props.dataSet != null){
             marks[min] = this.props.dataSet[min] + unit;
             marks[max] = this.props.dataSet[max] + unit;
         }
