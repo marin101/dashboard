@@ -153,7 +153,7 @@
 
             size: 1,
             capacity: 1
-          },
+        },
 
         pbounds: {
             type: "range",
@@ -161,8 +161,12 @@
             description: "Periods within this range will be included in the model",
 
             # Read unique CSV columns defined by the period from file1
-            source: {id: period, action: "readCSV", file: "file1", unique: true}
-          },
+            source: {id: period, action: "readCSV", file: "file1", unique: true},
+
+            # Number of marks on the range slider
+            # At most 3 marks will be shown
+            markCnt: 3      # Default markCnt=0
+        },
 
         datefmt: {
             type: "radio",           # Mutually exclusive checkboxes
@@ -217,7 +221,9 @@
 
             # min - max
             choice: [0, 100],
-            step: 10
+            step: 10,               # if step ommited, default step=1
+
+            markCnt: 5              # default markCnt=0
         },
 
         # Preparation step parameters
@@ -238,7 +244,11 @@
             defaultValue: [50, 80],
 
             # Specifies the parameter which enables/disables this parameter
-            control: {id: use_decay, enableValue: true},
+            control: {
+                id: use_decay,
+                enableValue: true,
+                disabledReturnValue: [0, 0]
+            },
 
             choice: [0, 100],
             step: 10,
@@ -424,7 +434,11 @@
 
             defaultValue: 1,
 
-            control: {id: optim_goal, enableValue: 0},
+            control: {
+                id: optim_goal,
+                enableValue: 0,
+                disabledReturnValue: 0
+            },
 
             unit: '%',
 
@@ -441,7 +455,11 @@
 
             defaultValue: 1,
 
-            control: {id: optim_goal, enableValue: 1},
+            control: {
+                id: optim_goal,
+                enableValue: 1,
+                disabledReturnValue: 0
+            },
 
             unit: '%',
 

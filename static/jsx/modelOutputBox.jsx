@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import {Header, Dropdown} from "semantic-ui-react"
+import {Grid, Header, Dropdown} from "semantic-ui-react";
 
 class ModelOutputBox extends React.Component {
     constructor() {
@@ -39,15 +39,20 @@ class ModelOutputBox extends React.Component {
         }));
 
 		return (
-			<div style={{width: "100%", maringTop: "3em", marginLeft: "-1px"}}>
-				<Header dividing block style={{display: "flex"}}>
-                    <div style={{flex: 1}}>
-					    Model Output
-                    </div>
+			<div style={{width: "100%"}}>
+				<Header block>
+                    <Grid columns={2} style={{fontSize: "1.2em", lineHeight: "1.2em"}}>
+                        <Grid.Column width={3} floated="left">
+                            Model Output
+                        </Grid.Column>
 
-                    <Dropdown selection placeholder="Select plot" options={plotOptions}
-                        disabled={plotOptions.length <= 0} style={{flex: 1}}
-                        onChange={this.changePlotIndex}/>
+                        <Grid.Column width={5} floated="right" style={{padding: "0.8em"}}>
+                            <Dropdown selection fluid placeholder="Select plot"
+                                disabled={plotOptions.length <= 0}
+                                onChange={this.changePlotIndex}
+                                options={plotOptions}/>
+                                </Grid.Column>
+                    </Grid>
 				</Header>
 
                 {this.state.plotIdx != null &&

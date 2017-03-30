@@ -81,7 +81,7 @@ function RadioParam(props) {
             <Form.Group>
                 {props.parameter.choice.map((choice, idx) =>
                     <Form.Field key={idx}>
-                        <Radio label={choice} name={props.parameter.id} checked={value == idx}
+                        <Radio label={choice} name={props.parameterId} checked={value == idx}
                             onChange={() => {props.onChange(idx)}}
                         />
                     </Form.Field>
@@ -170,22 +170,34 @@ class DropdownEditParam extends React.Component {
 }
 
 function SliderParam(props) {
-    const {name, value, description, unit='', choice, step} = props.parameter;
+    const {name, value=0, description, unit='', choice, step} = props.parameter;
     const [min, max] = choice;
 
+   /* Check if all marking values will be integers */
+    const isInteger = Number.isInteger(min) && Number.isInteger(step);
+
     const marks = {};
-
-    /* There will be at most 10 marked points */
-    const stepCnt = Math.floor((max - min) / step) + 1;
-    const markDist = (stepCnt < 10) ? step : (max - min)/10;
-
-    /* Check if all marking values will be integers */
-    const isInteger = Number.isInteger(min) && Number.isInteger(markDist);
+    let {markCnt=0} = props.parameter;
 
     /* Construct marks object */
-    for (let i = min; i <= max; i += markDist) {
-        const val = isInteger ? Math.round(i) : i;
-        marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
+    if (min < max && markCnt > 0) {
+        /* Number of marks must not be greater than number of steps */
+        const stepCnt = Math.floor((max - min) / step) + 1;
+        if (stepCnt < markCnt) markCnt = stepCnt;
+
+        let markDist;
+        if (markCnt - 1 <= 0) {
+            markDist = max - min + step;
+        } else {
+            markDist = (max - min) / (markCnt - 1);
+        }
+
+        const startIdx = (markCnt - 1 > 0) ? min : (max + min) / 2;
+
+        for (let i = startIdx; i <= max; i += markDist) {
+            const val = isInteger ? Math.round(i) : i;
+            marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
+        }
     }
 
     const sliderStyle = {
@@ -200,13 +212,19 @@ function SliderParam(props) {
                 <label style={{"display": "inline"}}> {name} </label>
             }/>
 
-            <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
-                <strong> {(isInteger ? value : value.toFixed(2)) + unit} </strong>
-            </div>
+            {!props.disabled &&
+                <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
+                    <strong> {(isInteger ? value : value.toFixed(2)) + unit} </strong>
+                </div>
+            }
 
             <Slider min={min} max={max} step={step} marks={marks} value={value}
                 style={sliderStyle} disabled={props.disabled}
                 onChange={newValue => {
+                    // TODO: Remove if mark objects treated as dots bug is resolved
+                    // Marks should not be selectable if they do not fit the step
+                    newValue = min + Math.round((newValue - min) / step)*step;
+
                     // TODO: Remove after bug [value > max] is resolved
                     if (newValue <= max) {
                         props.onChange(newValue);
@@ -218,49 +236,62 @@ function SliderParam(props) {
 }
 
 class RangeParam extends React.Component {
+    componentWillMount() {
+        if (this.props.disabled) {
+            this.props.onChange([0, 0]);
+        } else if (this.props.dataSet != null && this.props.parameter.value == null) {
+            this.props.onChange([0, this.props.dataSet.length - 1]);
+        }
+    }
+
     componenWillReceiveProps(nextProps) {
-        if (nextProps.dataSet != null && nextProps.parameter.value == null) {
-            console.log(nextProps.dataSet)
+        if (nextProps.disabled) {
+            nextProps.onChange([0, 0]);
+        } else if (nextProps.dataSet != null && nextProps.parameter.value == null) {
             nextProps.onChange([0, nextProps.dataSet.length - 1]);
         }
     }
 
     render() {
-        let {name, description, value, choice, step, source, unit=''} = this.props.parameter;
-        let [min, max] = (choice != null) ? choice : [0, 0];
+        const {name, value=[0, 0], choice, step=1, source, unit=''} = this.props.parameter;
+        let {markCnt=0} = this.props.parameter;
 
-        /* Range is disabled when dataSet was expected but not given */
-        const disabled = this.props.disabled || (source != null && this.props.dataSet == null);
-
-        if (this.props.dataSet != null) {
+        let [min, max] = [0, 0];
+        if (choice != null) {
+            [min, max] = choice;
+        } else if (this.props.dataSet != null) {
             [min, max] = [0, this.props.dataSet.length - 1];
-
-            if (value == null) {
-                value = [min, max];
-            }
-        } else if (disabled && value == null) {
-            value = [0, 0];
         }
+
+       /* Check if all marking values will be integers */
+        const isInteger = Number.isInteger(min) && Number.isInteger(step);
 
         const marks = {};
 
-        /* There will be at most 10 marked points */
-        const stepCnt = Math.floor((max - min) / step) + 1;
-        const markDist = (stepCnt < 10) ? step : (max - min)/10;
-
-        /* Check if all marking values will be integers */
-        const isInteger = Number.isInteger(min) && Number.isInteger(step);
-
         /* Construct marks object */
-        // TODO: hack
-        if (this.props.dataSet == null && false) {
-            for (let i = min; i <= max; i += markDist) {
-                const val = isInteger ? Math.round(i) : i;
-                marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
+        if (min < max && markCnt > 0) {
+            /* Number of marks must not be greater than number of steps */
+            const stepCnt = Math.floor((max - min) / step) + 1;
+            if (stepCnt < markCnt) markCnt = stepCnt;
+
+            let markDist;
+            if (markCnt - 1 <= 0) {
+                markDist = max - min + step;
+            } else {
+                markDist = (max - min) / (markCnt - 1);
             }
-        } else if (this.props.dataSet != null){
-            marks[min] = this.props.dataSet[min] + unit;
-            marks[max] = this.props.dataSet[max] + unit;
+
+            const startIdx = (markCnt - 1 > 0) ? min : (max + min) / 2;
+
+            for (let i = startIdx; i <= max; i += markDist) {
+                const val = isInteger ? Math.round(i) : i;
+
+                if (this.props.dataSet != null) {
+                    marks[val] = this.props.dataSet[val] + unit;
+                } else {
+                    marks[val] = (isInteger ? val : val.toFixed(2)) + unit;
+                }
+            }
         }
 
         let lowValue, highValue;
@@ -268,8 +299,8 @@ class RangeParam extends React.Component {
             lowValue  = isInteger ? value[0] : value[0].toFixed(2);
             highValue = isInteger ? value[1] : value[1].toFixed(2);
         } else {
-            lowValue   = this.props.dataSet[value[0]];
-            highValue  = this.props.dataSet[value[1]];
+            lowValue  = this.props.dataSet[value[0]];
+            highValue = this.props.dataSet[value[1]];
         }
 
         const rangeStyle = {
@@ -278,29 +309,45 @@ class RangeParam extends React.Component {
             "marginRight": "1em"
         };
 
+        /* Range is disabled when dataSet was expected but not given */
+        const disabled = this.props.disabled || (source != null && this.props.dataSet == null);
+
         return (
-            <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
-                <Popup on="hover" content={description} trigger={
-                    <label style={{"display": "inline"}}> {name} </label>
+            <Form.Field style={(Object.keys(marks).length > 0) ? {marginBottom: "2em"} : {}}>
+                <Popup on="hover" content={this.props.parameter.description} trigger={
+                    <label style={{display: "inline"}}> {name} </label>
                 }/>
 
-                <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
-                    <strong> {lowValue + unit} </strong>
-                    &hArr;
-                    <strong> {highValue + unit} </strong>
-                </div>
+                {!disabled &&
+                    <div style={{display: "inline", color: "#96dbfa", marginLeft: "5px"}}>
+                        <strong> {lowValue + unit} </strong>
+                        &hArr;
+                        <strong> {highValue + unit} </strong>
+                    </div>
+                }
 
                 <Range count={2} disabled={disabled} min={min} max={max} step={step}
-                    dots={!disabled && this.props.dataSet != null}
-                    marks={marks} value={value} allowCross={false} style={rangeStyle}
-                    onChange={newVal => {this.props.onChange(newVal)}}/>
+                    dots={!disabled} marks={marks} value={value} allowCross={false}
+                    style={rangeStyle} onChange={newValue => {
+                        // TODO: Remove if mark objects treated as dots bug is resolved
+                        // Marks should not be selectable if they do not fit the step
+                        newValue[0] = min + Math.round((newValue[0] - min) / step)*step;
+                        newValue[1] = min + Math.round((newValue[1] - min) / step)*step;
+
+                        // TODO: Remove after bug [value > max] is resolved
+                        if (newValue[0] <= max && newValue[1] <= max) {
+                            this.props.onChange(newValue);
+                        }
+                    }}
+                />
             </Form.Field>
         );
     }
 }
+
 const itemSource = {
     beginDrag(props) {
-        return {item: props.item};
+        return {item: props.item, id: props.containerId};
     },
     endDrag(props, monitor) {
         if (monitor.didDrop()) {
@@ -311,6 +358,7 @@ const itemSource = {
 }
 
 function DragDropSourceContainer(props) {
+    // TODO: unused
     const opacity = props.isDragging ? 0 : 1;
 
     return props.connectDragSource(
@@ -364,8 +412,8 @@ function DragDropTargetContainer(props) {
 
 const itemTarget = {
     drop: (props, monitor) => {
-        const item = monitor.getItem().item;
         const {value=[], capacity} = props.parameter;
+        const srcItem = monitor.getItem().item;
         const items = value.slice();
 
         let removedItem;
@@ -373,13 +421,14 @@ const itemTarget = {
             removedItem = items.pop();
         }
 
-        items.push(item);
+        items.push(srcItem);
         // TODO: Add sorting
         props.onChange(items);
 
         /* Return removed item to the drag source */
         return {removedItem: removedItem};
-    }
+    },
+    canDrop: (props, monitor) => monitor.getItem().id != props.containerId
 };
 
 const DragDropTarget = DropTarget("CSV_FIELDNAME", itemTarget,
@@ -405,10 +454,11 @@ function DragDropParam(props) {
     // TODO: Fix loading
     if (capacity == 1) {
         return (
-            <div style={{display: "flex", margin: "0.2rem"}}>
-                <DragDropTarget parameter={props.parameter} style={{flex: 1}}
-                    onChange={props.onChange}>
-                    <DragDropSource item={value[0]} onChange={onDragSrcChange}/>
+            <div style={{display: "flex"}}>
+                <DragDropTarget containerId={props.parameterId} parameter={props.parameter}
+                    style={{flex: 1}} onChange={props.onChange}>
+                    <DragDropSource containerId={props.parameterId}
+                        item={value[0]} onChange={onDragSrcChange}/>
                 </DragDropTarget>
 
                 <div style={{textAlign: "center", flex: 1}}> &rArr; </div>
@@ -428,9 +478,11 @@ function DragDropParam(props) {
                 <Header dividing block attached="top"> {name} </Header>
             }/>
 
-            <DragDropTarget parameter={props.parameter} onChange={props.onChange}>
+            <DragDropTarget containerId={props.parameterId} parameter={props.parameter}
+                onChange={props.onChange}>
                 {value.map((item, idx) =>
-                    <DragDropSource key={idx} item={item} onChange={onDragSrcChange}/>
+                    <DragDropSource key={idx} containerId={props.parameterId}
+                        item={item} onChange={onDragSrcChange}/>
                 )}
             </DragDropTarget>
         </div>

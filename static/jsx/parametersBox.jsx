@@ -13,31 +13,29 @@ import 'rc-slider/assets/index.css';
 
 // TODO: Remove params props field
 function Param(props) {
+    const {paramId, param, dataSet, disabled, onChange} = props;
+
     switch(props.param.type) {
         case "checkbox":
-            return <CheckboxParam parameter={props.param} onChange={props.onChange}/>;
+            return <CheckboxParam parameter={param} onChange={onChange}/>;
         case "radio":
-            return <RadioParam parameter={props.param} onChange={props.onChange}/>;
+            return <RadioParam parameterId={paramId} parameter={param} onChange={onChange}/>;
         case "dropdown":
-            return <DropdownParam parameter={props.param} options={props.dataSet}
-                onChange={props.onChange}/>;
+            return <DropdownParam parameter={param} options={dataSet} onChange={onChange}/>;
         case "dropdownEdit":
-            return <DropdownEditParam parameter={props.param} options={props.dataSet}
-                onChange={props.onChange}/>;
+            return <DropdownEditParam parameter={param} options={dataSet} onChange={onChange}/>;
         case "dragDrop":
-            return <DragDropParam parameter={props.param} onChange={props.onChange}/>;
+            return <DragDropParam parameterId={paramId} parameter={param} onChange={onChange}/>;
         case "slider":
-            return <SliderParam parameter={props.param} disabled={props.disabled}
-                onChange={props.onChange}/>;
+            return <SliderParam parameter={param} disabled={disabled} onChange={onChange}/>;
         case "range":
-            return <RangeParam parameter={props.param} dataSet={props.dataSet}
-                onChange={props.onChange} disabled={props.disabled}/>;
+            return <RangeParam parameter={param} dataSet={dataSet} disabled={disabled}
+                onChange={onChange}/>;
         case "file":
-            return <FileInputParam parameter={props.param} onChange={props.onChange}/>;
+            return <FileInputParam parameter={param} onChange={onChange}/>;
         case "text":
-        case "dragDrop":
         default:
-            return <TextParam parameter={props.param} onChange={props.onChange}/>;
+            return <TextParam parameter={param} onChange={onChange}/>;
     }
 }
 
@@ -81,8 +79,8 @@ function PageParams(props) {
     }
 
     const paramElem = (
-        <Param onChange={props.onChange.bind(this, paramIds)}
-            param={param} dataSet={dataSet} disabled={disabled}
+        <Param paramId={paramIds} param={param} dataSet={dataSet} disabled={disabled}
+            onChange={props.onChange.bind(this, paramIds)}
         />
     );
 
@@ -186,6 +184,15 @@ class ParametersDialog extends React.Component {
 
             switch (param.type) {
             case "range":
+                /* Check if parameter is disabled */
+                if (param.control != null) {
+                    const controlParam = params[param.control.id];
+
+                    if (param.control.enableValue != controlParam.value) {
+                        return param.control.disabledReturnValue;
+                    }
+                }
+
                 if (param.source != null) {
                     const srcParam = params[param.source.id];
 
@@ -208,7 +215,14 @@ class ParametersDialog extends React.Component {
                 return param.value.join(', ');
 
             case "slider":
-                const {value} = param;
+                /* Check if parameter is disabled */
+                if (param.control != null) {
+                    const controlParam = params[param.control.id];
+
+                    if (param.control.enableValue != controlParam.value) {
+                        return param.control.disabledReturnValue;
+                    }
+                }
 
                 if (param.returnValue != null) {
                     const retVal = param.returnValue;
@@ -218,10 +232,10 @@ class ParametersDialog extends React.Component {
                     const k = (retVal[1] - retVal[0]) / (choice[1] - choice[0]);
                     const l = (retVal[0] - k*choice[0]);
 
-                    return k*value + l;
+                    return k*param.value + l;
                 }
 
-                return value;
+                return param.value;
 
             case "radio":
                 return param.returnValue[param.value];

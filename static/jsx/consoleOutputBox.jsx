@@ -14,15 +14,14 @@ class ConsoleOutputBox extends React.Component {
 
 	render() {
 		return (
-			<div style={{"width": "100%", "marginTop": "1px", "marginLeft": "-1px",
-                "overflow": "auto"}}>
+			<div style={{"width": "100%", "overflow": "auto"}}>
 
 				<Header dividing block>
 					Console output
 				</Header>
 
                 {this.props.output.map((line, idx) =>
-                    <div key={idx} style={{"white-space": "pre-wrap"}}>
+                    <div key={idx} style={{"whiteSpace": "pre-wrap"}}>
                         {line} <br/>
                     </div>
                 )}

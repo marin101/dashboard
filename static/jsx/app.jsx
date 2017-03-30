@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import SplitPane from 'react-split-pane';
-import {Container, Grid, Sidebar, Menu, Image} from "semantic-ui-react";
+import {Sidebar, Menu, Image} from "semantic-ui-react";
 
 import ParametersBox from "./parametersBox.jsx";
 import ModelOutputBox from "./modelOutputBox.jsx";
@@ -59,7 +59,10 @@ class Application extends React.Component {
             display: "flex",
 
             minHeight: "100vh",
-            height: "100vh"
+            minWidth: "100vw",
+
+            height: "100vh",
+            width: "100vw"
         };
 
         const logoStyle = {
@@ -68,18 +71,20 @@ class Application extends React.Component {
         };
 
 		return (
-            <div className="flex-container" style={applicationStyle}>
-				<Menu size="large" style={{margin: 0, borderTop: 0, borderLeft: 0, borderRight: 0}}>
+            <div style={applicationStyle}>
+				<Menu size="large" style={{margin: 0, borderWidth: "0 0 1px 0"}}>
 					<Menu.Item header style={{padding: 0}}>
-                        <img src="/static/images/logo.png" style={logoStyle}/>
+                        <Image src="/static/images/logo.png"/>
                     </Menu.Item>
 				</Menu>
 
                 <Sidebar.Pushable>
                     <Sidebar visible={true}>
-                        <ParametersBox sessionId={sessionId} selectSession={this.onSessionSelect}
-                            returnModelOutput={this.onModelOutput} fetchPlots={this.onPlotsFetch}
-                            updateUsername={this.onModelsMetadataFetch}/>
+                        <ParametersBox sessionId={sessionId}
+                            updateUsername={this.onModelsMetadataFetch}
+                            returnModelOutput={this.onModelOutput}
+                            selectSession={this.onSessionSelect}
+                            fetchPlots={this.onPlotsFetch}/>
                     </Sidebar>
 
                     <Sidebar.Pusher>
