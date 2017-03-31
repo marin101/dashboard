@@ -37,8 +37,8 @@ if (as.integer(run) == 1) {
 
   use_decay = cmdArgs[3]
   decay_bounds = cmdArgs[4]
-  use_log = cmdArgs[8]
-  use_mc = cmdArgs[9]
+  use_log = cmdArgs[5]
+  use_mc = cmdArgs[6]
 
   print(paste("Prep parameters: ",
               'use_decay = ', use_decay,

@@ -87,11 +87,22 @@ def create_session():
     session_id = request.form["model"] + '_' + uuid.uuid4().hex
 
     try:
-        os.makedirs(os.path.join(USERS_DIRECTORY, auth.username(), session_id))
+        os.makedirs(os.path.join(USERS_DIRECTORY, auth.username(), session_id, "temp"))
     except OSError:
         logging.error(e)
 
     return json.dumps(session_id)
+
+@app.route("/save_session/", methods=["POST"])
+def save_session():
+    dirpath = os.path.join(USERS_DIRECTORY, auth.username(), request.form["sessionId"])
+
+    try:
+        shutil.copytree(os.path.join(dirpath, "temp"), dirpath)
+    except OSError as e:
+        logging.error(e)
+
+    return json.dumps(None)
 
 @app.route("/delete_session/", methods=["POST"])
 def delete_session():
@@ -102,6 +113,8 @@ def delete_session():
     except OSError as e:
         # TODO: Make logging
         logging.error(e)
+
+    return json.dumps(None)
 
 def database_connect(database_path):
     db = getattr(g, "database", None)
@@ -199,19 +212,18 @@ def run_model():
 
     return json.dumps({"consoleOutput": result.stdout.readlines(), "plots": plots});
 
-@app.route("/upload_CSV_file/", methods=["POST"])
-def upload_CSV_file():
+@app.route("/upload_csv_file/", methods=["POST"])
+def upload_csv_file():
     user_dirname = os.path.join(USERS_DIRECTORY, auth.username())
-    # TODO: Use file parameter returnValue insetead of "userData.csv"
-    csv_path = os.path.join(user_dirname, "userData.csv")
+    csv_path = os.path.join(user_dirname, request.form["sessionId"])
 
-    csv_file = request.files["CSVfile"]
-    csv_file.save(csv_path)
+    csv_file = request.files["csvfile"]
+    csv_file.save(os.path.join(csv_path, csv_file.filename))
 
     try:
-        with open(csv_path, 'r') as f:
+        with open(os.path.join(csv_path, csv_file.filename), 'r') as f:
             csv_fieldnames = csv.DictReader(f).fieldnames
-    except IOError:
+    except IOError as e:
         pass
 
     return json.dumps({"filename": csv_path, "fieldnames": csv_fieldnames})
@@ -228,20 +240,25 @@ def fetch_plots():
 
     return json.dumps(plots)
 
-@app.route("/fetch_csv_column/", methods=["POST"])
+@app.route("/fetch_csv_columns/", methods=["POST"])
 def fetch_csv_column():
-    unique = request.form.get("unique", False)
-    csv_fieldname = request.form["fieldname"]
-    csv_filename = request.form["filename"]
+    user_dirname = os.path.join(USERS_DIRECTORY, auth.username())
 
-    column_values = []
-    with open(os.path.join(USERS_DIRECTORY, auth.username(), csv_filename)) as f:
+    session_id = request.form["sessionId"]
+
+    filename = request.form["filename"]
+    fieldnames = json.loads(request.form["fieldnames"])
+
+    print filename, fieldnames
+    column_values = {}
+    with open(os.path.join(user_dirname, session_id, filename)) as f:
         for row in csv.DictReader(f):
-            value = row[csv_fieldname]
+            for fieldname, unique in fieldnames.iteritems():
+                value = row[fieldname]
 
-            # TODO: Optimize
-            if not unique or value not in column_values:
-                column_values.append(value)
+                # TODO: Optimize
+                if not unique or value not in column_values.setdefault(fieldname, []):
+                    column_values.setdefault(fieldname, []).append(value)
 
     return json.dumps(column_values)
 

@@ -1,1 +1,0 @@
-cat(paste('\n Hey thanks for using as the source from FILE1!!! \n',nameMe,'\n'))

@@ -273,7 +273,7 @@
             description: "Apply mean centering?",
 
             defaultValue: true,
-            returnValue: ['0', '1']
+            returnValue: [0, 1]
         },
 
         # Model step parameters
