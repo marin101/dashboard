@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import {Grid, Header, Dropdown, Icon, Button, Popup, Form, Menu, Input, Modal} from "semantic-ui-react";
+import {Grid, Header, Message, Dropdown, Icon, Button, Popup, Form, Menu, Input, Modal} from "semantic-ui-react";
 import {DropdownEditParam, TextParam, CheckboxParam, RadioParam} from "./UIElements.jsx";
 import {DropdownParam, SliderParam, RangeParam, DragDropParam} from "./UIElements.jsx";
 import {FileInputParam} from "./UIElements.jsx";
@@ -10,6 +10,10 @@ import HTML5Backend from "react-dnd-html5-backend";
 import {DragDropContext} from "react-dnd";
 
 import 'rc-slider/assets/index.css';
+
+function stringCmp(a, b) {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+}
 
 function Param(props) {
     const {paramId, param, dataSet, onChange} = props;
@@ -136,6 +140,7 @@ class ParametersDialog extends React.Component {
 
                 if (value != null) {
                     const prevValue = this.props.params[param.source.id].value;
+                    console.log("marin", value, prevValue);
 
                     if (prevValue == null) {
                         for (let fieldname of value) {
@@ -191,16 +196,14 @@ class ParametersDialog extends React.Component {
             const uploadCsvFileRequest = new XMLHttpRequest();
 
             uploadCsvFileRequest.addEventListener("load", request => {
-                const csvFieldnames = JSON.parse(request.target.response).fieldnames;
+                const csvFieldnames = JSON.parse(request.target.response);
                 const targetParamId = this.props.params[paramId].target;
 
                 /* Update filename parameter */
                 this.props.onChange(paramId, file.name);
 
                 /* Update referenced parameter */
-                this.props.onChange(targetParamId, csvFieldnames.sort((a, b) =>
-                    a.toLowerCase().localeCompare(b.toLowerCase())
-                ));
+                this.props.onChange(targetParamId, csvFieldnames.sort(stringCmp));
             });
 
             uploadCsvFileRequest.addEventListener("error", request => {
@@ -208,8 +211,9 @@ class ParametersDialog extends React.Component {
             });
 
             const csvFileForm = new FormData();
-            csvFileForm.append("sessionId", this.props.sessionId);
-            csvFileForm.append("csvfile", file);
+            csvFileForm.append("model", this.props.modelId);
+            csvFileForm.append("session", this.props.sessionId);
+            csvFileForm.append("csvFile", file);
 
             uploadCsvFileRequest.open("POST", "/upload_csv_file/");
             uploadCsvFileRequest.send(csvFileForm);
@@ -321,7 +325,8 @@ class ParametersDialog extends React.Component {
             });
 
             const csvFieldnameForm = new FormData();
-            csvFieldnameForm.set("sessionId", this.props.sessionId);
+            csvFieldnameForm.set("model", this.props.modelId);
+            csvFieldnameForm.set("session", this.props.sessionId);
             csvFieldnameForm.set("fieldnames", JSON.stringify(fieldnames));
             csvFieldnameForm.set("filename", filename);
 
@@ -430,6 +435,101 @@ class ParametersDialog extends React.Component {
 
 const DragDropContainer = DragDropContext(HTML5Backend)(ParametersDialog);
 
+class CreateSessionDialog extends React.Component {
+    constructor() {
+        super();
+
+        this.state = {
+            newSessionName: '',
+            errorMsg: null
+        };
+
+        this.createSession = this.createSession.bind(this);
+        this.setSessionName = this.setSessionName.bind(this);
+    }
+
+    componentWillReceiveProps() {
+        this.setState({errorMsg: null});
+    }
+
+    createSession(e, data) {
+        const newSessionName = this.state.newSessionName;
+
+        /* Validate session name */
+        if (newSessionName == '') {
+            this.setState({errorMsg: "Session name cannot be empty"});
+        } else if (this.props.sessions.includes(newSessionName)) {
+            this.setState({errorMsg: "Session name already exists"});
+        } else {
+            const createSessionRequest= new XMLHttpRequest();
+
+            createSessionRequest.addEventListener("load", request => {
+                const sessionName = JSON.parse(request.target.response);
+                this.props.onCreateSession(sessionName);
+                this.props.onClose();
+            });
+
+            createSessionRequest.addEventListener("error", request => {
+                // TODO: Handle error
+            });
+
+            const createSessionForm = new FormData();
+            createSessionForm.append("model", this.props.modelId);
+            createSessionForm.append("session", this.state.newSessionName);
+
+            createSessionRequest.open("POST", "/create_session/");
+            createSessionRequest.send(createSessionForm);
+        }
+    }
+
+    setSessionName(e, data) {
+        this.setState({
+            newSessionName: data.value,
+            errorMsg: null
+        });
+    }
+
+    render() {
+        const {newSessionName, errorMsg} = this.state;
+
+        return (
+            <Modal open={this.props.isOpen} onClose={this.props.onClose}>
+                <Modal.Header> Create new session </Modal.Header>
+
+                <Modal.Content>
+                    <Form>
+                        <Form.Field>
+                            <label> Session name </label>
+                            <Input focus placeholder="Enter unique session name"
+                                onChange={this.setSessionName}
+                                error={errorMsg != null}
+                            />
+                        </Form.Field>
+
+                        {errorMsg != null &&
+                            <Form.Field>
+                                <Message negative>
+                                    <Message.Header>
+                                        Incorrect session name
+                                    </Message.Header>
+
+                                    {errorMsg}
+                                </Message>
+                            </Form.Field>
+                        }
+                    </Form>
+                </Modal.Content>
+
+                <Modal.Actions>
+                    <Button primary onClick={this.createSession}>
+                        Create session
+                    </Button>
+                </Modal.Actions>
+            </Modal>
+        );
+    }
+}
+
 class ParametersBox extends React.Component {
 	constructor() {
 		super();
@@ -462,24 +562,29 @@ class ParametersBox extends React.Component {
             /* Controls whether parameters dialog should be open */
             isParamsDialogOpen: false,
 
+            isCreateSessionDialogOpen: false,
+
             // TODO:
             errorMsg: null,
 		};
 
+        this.addSession = this.addSession.bind(this);
         this.saveSession = this.saveSession.bind(this);
-        this.createSession = this.createSession.bind(this);
+        this.loadSession = this.loadSession.bind(this);
         this.deleteSession = this.deleteSession.bind(this);
+        this.restoreSession = this.restoreSession.bind(this);
 
         this.fetchModelsMetadata = this.fetchModelsMetadata.bind(this);
         this.selectModel = this.selectModel.bind(this);
         this.runModel = this.runModel.bind(this);
 
-        this.fetchPlots = this.fetchPlots.bind(this);
         this.fetchSessions = this.fetchSessions.bind(this);
         this.selectSession = this.selectSession.bind(this);
 
         this.changeParamValue = this.changeParamValue.bind(this);
+
         this.openParamsDialog = this.openParamsDialog.bind(this);
+        this.openNewSessionDialog = this.openNewSessionDialog.bind(this);
 
         this.updateCsvColumnValues = this.updateCsvColumnValues.bind(this);
 	}
@@ -489,7 +594,6 @@ class ParametersBox extends React.Component {
 	}
 
 	fetchModelsMetadata() {
-        console.log('kita')
         const fetchModelsMetadataRequest = new XMLHttpRequest();
 
         fetchModelsMetadataRequest.addEventListener("load", request => {
@@ -542,7 +646,6 @@ class ParametersBox extends React.Component {
     updateCsvColumnValues(csvColumns) {
         const csvColumnValues = Object.assign({}, this.state.csvColumnValues);
 
-        console.log('kita2')
         for (let fieldname in csvColumns) {
             csvColumnValues[fieldname] = csvColumns[fieldname];
         };
@@ -558,8 +661,7 @@ class ParametersBox extends React.Component {
         }
     }
 
-    // TODO: Add session ID
-	runModel(step, params) {
+	runModel(currStep, runParamValues) {
 		const runModelRequest = new XMLHttpRequest();
 
 		runModelRequest.addEventListener("load", request => {
@@ -577,14 +679,24 @@ class ParametersBox extends React.Component {
             this.setState({errorMsg: request.target.response});
 		});
 
-        const stepData = {"index": this.state.stepIdx + 1, "id": step.id};
+        const allParamValues = {};
+        for (let paramId in this.state.modelParams) {
+            const {value} = this.state.modelParams[paramId];
+
+            allParamValues[paramId] = value;
+        }
+
+        console.log(allParamValues);
 
         const modelForm = new FormData();
         modelForm.set("model", this.state.modelId);
-        modelForm.set("sessionId", this.state.sessionId);
+        modelForm.set("session", this.state.sessionId);
 
-        modelForm.set("step", JSON.stringify(stepData));
-        modelForm.set("parameters", JSON.stringify(params));
+        modelForm.set("stepId", currStep.id);
+        modelForm.set("stepIdx", this.state.stepIdx + 1);
+
+        modelForm.set("runParamValues", JSON.stringify(runParamValues));
+        modelForm.set("allParamValues", JSON.stringify(allParamValues));
 
 		runModelRequest.open("POST", "/run_model/");
 		runModelRequest.send(modelForm);
@@ -596,43 +708,8 @@ class ParametersBox extends React.Component {
         newParams[paramId] = Object.assign({}, newParams[paramId]);
 
         newParams[paramId].value = newValue;
-        console.log('kita5', paramId, newValue)
 		this.setState({modelParams: newParams});
 	}
-
-    fetchPlots(modelId, sessionId, step) {
-        const fetchPlotsRequest = new XMLHttpRequest();
-
-        fetchPlotsRequest.addEventListener("load", request => {
-            this.props.fetchPlots(JSON.parse(request.target.response));
-        });
-
-        fetchPlotsRequest.addEventListener("error", request => {
-            // TODO: Handle error
-        });
-
-        const getPlotsForm = new FormData();
-
-        getPlotsForm.append("model", modelId);
-        getPlotsForm.append("sessionId", sessionId);
-
-        getPlotsForm.append("stepId", step.id);
-
-        fetchPlotsRequest.open("POST", "/fetch_plots/");
-        fetchPlotsRequest.send(getPlotsForm);
-    }
-
-    selectSession(event, data) {
-        const sessionId = data.value;
-
-        const {modelsInfo, stepIdx} = this.state;
-        const model = modelsInfo[this.state.modelId];
-
-        this.props.selectSession(sessionId);
-        this.setState({sessionId: sessionId, stepIdx: 0});
-
-        this.fetchPlots(this.state.modelId, sessionId, model.steps[0]);
-    }
 
     selectModel(event, data) {
         const modelId = data.value;
@@ -648,13 +725,25 @@ class ParametersBox extends React.Component {
 
         this.resetParamsToDefaults(modelParams);
 
-                console.log('ta6')
         this.setState({
             modelId: modelId,
             modelParams: modelParams
         });
 
         this.fetchSessions(modelId);
+    }
+
+    openParamsDialog(event, data) {
+        if (!data.disabled) {
+            this.setState({
+                stepIdx: data.index,
+                isParamsDialogOpen: true
+            });
+        }
+    }
+
+    openNewSessionDialog(e, data) {
+        this.setState({isCreateSessionDialogOpen: true});
     }
 
     fetchSessions(modelId) {
@@ -675,39 +764,69 @@ class ParametersBox extends React.Component {
         fetchSessionsRequest.send(getSessionsForm);
     }
 
-    openParamsDialog(event, data) {
-                console.log('kita6')
-        if (!data.disabled) {
-            this.setState({
-                stepIdx: data.index,
-                isParamsDialogOpen: true
-            });
-        }
+    selectSession(event, data) {
+        const sessionId = data.value;
+
+        const {modelsInfo, stepIdx} = this.state;
+        const model = modelsInfo[this.state.modelId];
+
+        this.props.selectSession(sessionId);
+        this.setState({sessionId: sessionId, stepIdx: 0});
+
+        this.loadSession(this.state.modelId, sessionId);
     }
 
-    createSession(e, data) {
-        const crateSessionRequest= new XMLHttpRequest();
+    // TODO: Use binary search to imporove performance
+    // Add session to the sorted session list
+    addSession(newSession) {
+        const newSessions = this.state.sessions.slice();
+        newSessions.push(newSession);
 
-        crateSessionRequest.addEventListener("load", request => {
-            const sessionId = JSON.parse(request.target.response);
-
-            this.setState({
-                sessions: this.state.sessions.concat(sessionId),
-                sessionId: sessionId
-            });
-
-            this.props.selectSession(sessionId);
+        this.setState({
+            sessions: newSessions.sort(),
+            sessionId: newSession
         });
 
-        crateSessionRequest.addEventListener("error", request => {
+        this.props.selectSession(newSession);
+    }
+
+    loadSession(modelId, sessionId) {
+        const loadSessionRequest= new XMLHttpRequest();
+
+        loadSessionRequest.addEventListener("load", request => {
+            const sessionMetadata = JSON.parse(request.target.response);
+
+            if (Object.keys(sessionMetadata).length > 0) {
+                const newModelParams = Object.assign({}, this.state.modelParams);
+                const paramValues = sessionMetadata.paramValues;
+
+                /* Restore parameter values for this session */
+                Object.keys(paramValues).forEach(paramId => {
+                    const newParam  = Object.assign({}, newModelParams[paramId]);
+
+                    newParam.value = paramValues[paramId];
+                    newModelParams[paramId] = newParam;
+                });
+
+                this.setState({
+                    stepIdx: sessionMetadata.stepIdx,
+                    modelParams: newModelParams
+                });
+
+                this.props.fetchPlots(sessionMetadata.plots);
+            }
+        });
+
+        loadSessionRequest.addEventListener("error", request => {
             // TODO: Handle error
         });
 
-        const createSessionForm = new FormData();
-        createSessionForm.append("model", this.state.modelId);
+        const loadSessionForm = new FormData();
+        loadSessionForm.append("model", modelId);
+        loadSessionForm.append("session", sessionId);
 
-        crateSessionRequest.open("POST", "/create_session/");
-        crateSessionRequest.send(createSessionForm);
+        loadSessionRequest.open("POST", "/load_session/");
+        loadSessionRequest.send(loadSessionForm);
     }
 
     saveSession(e, data) {
@@ -723,7 +842,7 @@ class ParametersBox extends React.Component {
 
         const saveSessionForm = new FormData();
         saveSessionForm.append("model", this.state.modelId);
-        saveSessionForm.append("sessionId", this.state.sessionId);
+        saveSessionForm.append("session", this.state.sessionId);
 
         saveSessionRequest.open("POST", "/save_session/");
         saveSessionRequest.send(saveSessionForm);
@@ -733,7 +852,12 @@ class ParametersBox extends React.Component {
         const deleteSessionRequest = new XMLHttpRequest();
 
         deleteSessionRequest.addEventListener("load", request => {
-            // TODO: Do something
+            this.setState({
+                sessionId: null,
+
+                sessions: this.state.sessions.filter(session =>
+                    session != this.state.sessionId)
+            });
         });
 
         deleteSessionRequest.addEventListener("error", request => {
@@ -742,16 +866,20 @@ class ParametersBox extends React.Component {
 
         const deleteSessionForm = new FormData();
         deleteSessionForm.append("model", this.state.modelId);
-        deleteSessionForm.append("sessionId", this.state.sessionId);
+        deleteSessionForm.append("session", this.state.sessionId);
 
         deleteSessionRequest.open("POST", "/delete_session/");
         deleteSessionRequest.send(deleteSessionForm);
     }
 
-	render() {
-        const {modelsInfo, sessionId, stepIdx, modelParams} = this.state;
+    restoreSession() {
+        // TODO: Retreive session information from temp, not saved
+    }
 
-        const model = modelsInfo[this.state.modelId];
+	render() {
+        const {modelsInfo, modelId, sessionId, stepIdx, modelParams} = this.state;
+
+        const model = modelsInfo[modelId];
         const step = (model != null) ? model.steps[stepIdx] : null;
 
         const modelDropdownChoice = Object.keys(modelsInfo).map((modelId, idx) => ({
@@ -771,13 +899,13 @@ class ParametersBox extends React.Component {
                 <Form size="mini">
                     <Menu fluid>
                         <Menu.Item name="New session" disabled={model == null}
-                            onClick={this.createSession}/>
+                            onClick={this.openNewSessionDialog}/>
 
                         <Menu.Item name="Save session" disabled={sessionId == null}
                             onClick={this.saveSession}/>
 
                         <Menu.Item name="Delete session" disabled={sessionId == null}
-                            onClick={this.createSession}>
+                            onClick={this.deleteSession}>
                         </Menu.Item>
                     </Menu>
 
@@ -809,13 +937,14 @@ class ParametersBox extends React.Component {
                 </Form>
 
                 <DragDropContainer isOpen={this.state.isParamsDialogOpen}
-                    onClose={() => {console.log('ita7'); this.setState({isParamsDialogOpen: false})}}
+                    onClose={() => {this.setState({isParamsDialogOpen: false})}}
 
                     csvColumnValues={this.state.csvColumnValues}
                     updateCsvColumnValues={this.updateCsvColumnValues}
 
                     resetParams={this.resetParamsToDefaults}
 
+                    modelId={modelId}
                     sessionId={sessionId}
 
                     step={step}
@@ -824,6 +953,13 @@ class ParametersBox extends React.Component {
 
                     onChange={this.changeParamValue}
                     onRunModel={this.runModel}
+                />
+
+                <CreateSessionDialog isOpen={this.state.isCreateSessionDialogOpen}
+                    onClose={() => {this.setState({isCreateSessionDialogOpen: false})}}
+                    onCreateSession={this.addSession}
+                    sessions={this.state.sessions}
+                    modelId={this.state.modelId}
                 />
 		    </div>
 		);

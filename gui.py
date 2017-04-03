@@ -29,37 +29,10 @@ IP_ADDRESS = "0.0.0.0"
 PORT = 5500
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = uuid.uuid4().hex
 app.debug = False
 
+app.config["SECRET_KEY"] = uuid.uuid4().hex
 auth = flask_httpauth.HTTPBasicAuth()
-
-# TODO: Add UI functionality
-def add_user(database, username, password):
-    database.execute(
-        "INSERT INTO users VALUES("
-        + '"' + username + '", "' + password + '"'
-      + ')')
-
-    try:
-        os.mkdir(os.path.join(USERS_DIRECTORY, username))
-    except OSError as e:
-        logging.error(e)
-
-@app.route("/remove_user/", methods=["POST"])
-def remove_user():
-    db = database_connect(DATABASE_PATH)
-    db.execute(
-        "DELETE FROM users WHERE "
-        + "username='" + username + "'"
-    )
-
-    try:
-        shutil.rmtree(os.path.join(USERS_DIRECTORY, username))
-    except OSError as e:
-        logging.error(e)
-
-    return redirect(url_for('/'))
 
 def init_database(database):
     def make_dicts(cursor, row):
@@ -73,8 +46,8 @@ def init_database(database):
         + "password VARCHAR(29) NOT NULL"
       + ')')
 
-    # TODO: Default users
     try:
+        # TODO: Default users
         add_user(database, "admin", "marin")
         add_user(database, "marin", "admin")
     except sqlite3.IntegrityError as e:
@@ -82,39 +55,148 @@ def init_database(database):
 
     database.commit()
 
-@app.route("/create_session/", methods=["POST"])
-def create_session():
-    session_id = request.form["model"] + '_' + uuid.uuid4().hex
+def get_user_dirpath(username):
+    return os.path.join(USERS_DIRECTORY, username)
+
+# TODO: Add UI functionality
+def add_user(database, username, password):
+    database.execute(
+        "INSERT INTO users VALUES("
+        + '"' + username + '", "' + password + '"'
+      + ')')
 
     try:
-        os.makedirs(os.path.join(USERS_DIRECTORY, auth.username(), session_id, "temp"))
-    except OSError:
+        os.mkdir(get_user_dirpath(username))
+    except OSError as e:
         logging.error(e)
 
-    return json.dumps(session_id)
+# TODO: Add UI functionality
+def remove_user():
+    db = database_connect(DATABASE_PATH)
+    db.execute(
+        "DELETE FROM users WHERE "
+        + "username='" + username + "'"
+    )
+
+    try:
+        shutil.rmtree(get_user_dirpath(auth.username()))
+    except OSError as e:
+        logging.error(e)
+
+    return redirect(url_for('/'))
+
+# TODO: Combine with fetch models metadata
+@app.route("/fetch_sessions/", methods=["POST"])
+def fetch_sessions():
+    username = auth.username()
+    model = request.form["model"]
+
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    sessions = glob.glob(model_dir + "/*/")
+
+    return json.dumps(sorted([os.path.relpath(s, model_dir) for s in sessions]))
+
+@app.route("/create_session/", methods=["POST"])
+def create_session():
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
+
+    model_dir = os.path.join(get_user_dirpath(username), model)
+
+    try:
+        os.makedirs(os.path.join(model_dir, session, "temp"))
+    except OSError:
+        pass
+
+    return json.dumps(session)
 
 @app.route("/save_session/", methods=["POST"])
 def save_session():
-    dirpath = os.path.join(USERS_DIRECTORY, auth.username(), request.form["sessionId"])
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
+
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    session_dir = os.path.join(model_dir, session)
+    save_dir = os.path.join(session_dir, "saved")
+    temp_dir = os.path.join(session_dir, "temp")
 
     try:
-        shutil.copytree(os.path.join(dirpath, "temp"), dirpath)
+        shutil.rmtree(save_dir, True)
+    except OSError as e:
+        pass
+
+    try:
+        shutil.copytree(temp_dir, save_dir)
     except OSError as e:
         logging.error(e)
 
     return json.dumps(None)
 
-@app.route("/delete_session/", methods=["POST"])
-def delete_session():
-    session_id = json.loads(request.form["sessionId"])
+def get_plots(dirname, stepId=None):
+    plots_regex = stepId + "*.html" if stepId is not None else "*.html"
+    plots = glob.glob(os.path.join(dirname, plots_regex))
+
+    return [os.path.relpath(plot, destination)[:-5] for plot in plots]
+
+@app.route("/load_session/", methods=["POST"])
+def load_session():
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
+
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    session_dir = os.path.join(model_dir, session)
+    save_dir = os.path.join(session_dir, "saved")
+
+    session_metadata = {}
 
     try:
-        shutil.rmtree(os.path.join(USERS_DIRECTORY, auth.username(), session_id), True)
+        with open(os.path.join(save_dir, "metadata"), 'r') as metadata:
+            session_metadata = json.load(metadata)
+
+        # There can be no plots if metadata is missing
+        session_metadata["plots"] = get_plots(save_dir)
+    except IOError:
+        pass
+
+    return json.dumps(session_metadata)
+
+@app.route("/delete_session/", methods=["POST"])
+def delete_session():
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
+
+    session_dir = os.path.join(get_user_dirpath(username), model, session)
+
+    try:
+        shutil.rmtree(session_dir, True)
     except OSError as e:
         # TODO: Make logging
         logging.error(e)
 
     return json.dumps(None)
+
+# Restore model staet from temp, not from saved
+@app.route("/restore_session/", methods=["POST"])
+def restore_session():
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
+
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    session_dir = os.path.join(model_dir, session)
+    temp_dir = os.path.join(session_dir, "temp")
+
+    try:
+        with open(os.path.join(temp_dir, "metadata")) as metadata:
+            return metadata.readlines()
+    except IOError:
+        pass
+
+    return json.dumps(None);
 
 def database_connect(database_path):
     db = getattr(g, "database", None)
@@ -167,14 +249,6 @@ def fetch_models_metadata():
 
     return json.dumps({"models": models, "username": auth.username()})
 
-@app.route("/fetch_sessions/", methods=["POST"])
-def fetch_sessions():
-    dirname = os.path.join(USERS_DIRECTORY, auth.username())
-    model = request.form["model"]
-
-    session_paths = glob.glob(os.path.join(dirname, model) + "*/")
-    return json.dumps([os.path.relpath(s, dirname) for s in session_paths])
-
 # TODO: Not used for now
 @app.route("/fetch_model_description/", methods=["POST"])
 def fetch_model_description():
@@ -195,43 +269,67 @@ def fetch_model_description():
 
 @app.route("/run_model/", methods=["POST"])
 def run_model():
-    model = os.path.join(MODELS_DIRECTORY, request.form["model"] + ".R")
+    username = auth.username()
 
-    user_dirname = os.path.join(USERS_DIRECTORY, auth.username())
-    destination = os.path.join(user_dirname, request.form["sessionId"])
+    # Current model progress
+    model = request.form["model"]
+    session = request.form["session"]
+    stepIdx = request.form["stepIdx"]
+    runParams = json.loads(request.form["runParamValues"])
+    allParams = json.loads(request.form["allParamValues"])
 
-    step = json.loads(request.form["step"])
+    # Destination directory for specific user
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    session_dir = os.path.join(model_dir, session)
+    temp_dir = os.path.join(session_dir, "temp")
 
-    model_call = ["Rscript", model, destination, str(step["index"])]
-    model_call.extend(map(lambda x: str(x), json.loads(request.form["parameters"])))
+    print model, stepIdx, runParams, allParams
+
+    # Path to the model R script
+    model_script = os.path.join(MODELS_DIRECTORY, model  + ".R")
+
+    # Run model as a separate subprocess with given parameters
+    model_call = ["Rscript", model_script, temp_dir, str(stepIdx)]
+    model_call.extend(map(lambda x: str(x), runParams))
 
     result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
 
-    plots = glob.glob(os.path.join(destination, step["id"].capitalize() + "*.html"))
-    plots = [os.path.relpath(plot, destination)[:-5] for plot in plots]
+    # Store current state of the model
+    with open(os.path.join(temp_dir, "metadata"), 'w') as metadata:
+        json.dump({"stepIdx": stepIdx, "paramValues": allParams}, metadata)
+
+    # TODO:
+    plots = get_plots(temp_dir, request.form["stepId"])
 
     return json.dumps({"consoleOutput": result.stdout.readlines(), "plots": plots});
 
 @app.route("/upload_csv_file/", methods=["POST"])
 def upload_csv_file():
-    user_dirname = os.path.join(USERS_DIRECTORY, auth.username())
-    csv_path = os.path.join(user_dirname, request.form["sessionId"])
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
 
-    csv_file = request.files["csvfile"]
-    csv_file.save(os.path.join(csv_path, csv_file.filename))
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    session_dir = os.path.join(model_dir, session)
+    temp_dir = os.path.join(session_dir, "temp")
+
+    csv_file = request.files["csvFile"]
+    csv_path = os.path.join(temp_dir, csv_file.filename)
+
+    csv_file.save(csv_path)
 
     try:
-        with open(os.path.join(csv_path, csv_file.filename), 'r') as f:
+        with open(csv_path, 'r') as f:
             csv_fieldnames = csv.DictReader(f).fieldnames
     except IOError as e:
-        pass
+        logging.error(e)
 
-    return json.dumps({"filename": csv_path, "fieldnames": csv_fieldnames})
+    return json.dumps(csv_fieldnames)
 
 @app.route("/fetch_plots/", methods=["POST"])
 def fetch_plots():
-    user_dirname = os.path.join(USERS_DIRECTORY, auth.username())
-    destination = os.path.join(user_dirname, request.form["sessionId"])
+    user_dirname = get_user_dirpath(auth.username())
+    destination = os.path.join(user_dirname, request.form["session"])
 
     step_id = request.form["stepId"]
 
@@ -242,16 +340,20 @@ def fetch_plots():
 
 @app.route("/fetch_csv_columns/", methods=["POST"])
 def fetch_csv_column():
-    user_dirname = os.path.join(USERS_DIRECTORY, auth.username())
+    username = auth.username()
+    model = request.form["model"]
+    session = request.form["session"]
 
-    session_id = request.form["sessionId"]
+    model_dir = os.path.join(get_user_dirpath(username), model)
+    session_dir = os.path.join(model_dir, session)
+    temp_dir = os.path.join(session_dir, "temp")
 
     filename = request.form["filename"]
     fieldnames = json.loads(request.form["fieldnames"])
 
     print filename, fieldnames
     column_values = {}
-    with open(os.path.join(user_dirname, session_id, filename)) as f:
+    with open(os.path.join(temp_dir, filename)) as f:
         for row in csv.DictReader(f):
             for fieldname, unique in fieldnames.iteritems():
                 value = row[fieldname]

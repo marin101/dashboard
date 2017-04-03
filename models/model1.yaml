@@ -432,7 +432,7 @@
             name: "Total channel cost as a ratio of current",
             description: "Expands the Budget Constraint to go beyond current budget",
 
-            defaultValue: 1,
+            defaultValue: 0,
 
             control: {
                 id: optim_goal,
@@ -453,7 +453,7 @@
             name: "Target sales as a ratio of current",
             description: "Expands the Sales Target Constraint to go beyond current sales",
 
-            defaultValue: 1,
+            defaultValue: 0,
 
             control: {
                 id: optim_goal,
