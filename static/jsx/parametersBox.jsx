@@ -136,16 +136,26 @@ class ParametersDialog extends React.Component {
                 const filename = params[param.source.file].value;
 
                 if (filename != null && csvColumnsToFetch != null) {
-                    const fieldnames = fieldnamesToFetch[filename] = {};
+                    let fieldnames = fieldnamesToFetch[filename];
+
+                    /* Initialize if entry doesn't exist */
+                    if (fieldnamesToFetch[filename] == null) {
+                        fieldnames = fieldnamesToFetch[filename] = {};
+                    }
 
                     csvColumnsToFetch.map(val => {
+                        if (param.source.id == "geobrand") console.log(val)
+
                         if (!this.props.csvColumnValues.hasOwnProperty(val)) {
                             fieldnames[val] = uniqueOnly;
+                            console.log(fieldnames)
                         }
                     });
                 }
             }
         }
+
+        console.log(fieldnamesToFetch["phy_mmx_data.csv"])
 
         /* Send one request per csv file */
         for (let filename in fieldnamesToFetch) {
@@ -182,7 +192,6 @@ class ParametersDialog extends React.Component {
                     const param = this.props.params[paramId];
 
                     if (paramId != targetParamId && param.group == targetParam.group) {
-                        console.log(param);
                         this.props.onChange(paramId, []);
                     }
                 }
@@ -292,7 +301,6 @@ class ParametersDialog extends React.Component {
         if (!this.csvOperationActive && Object.keys(fieldnames).length > 0) {
             this.csvOperationActive = true;
 
-            console.log(fieldnames)
             const fetchCsvColumnRequest = new XMLHttpRequest();
 
             fetchCsvColumnRequest.addEventListener("load", request => {
@@ -673,8 +681,6 @@ class ParametersBox extends React.Component {
 
             allParamValues[paramId] = value;
         }
-
-        console.log(allParamValues);
 
         const modelForm = new FormData();
         modelForm.set("model", this.state.modelId);
