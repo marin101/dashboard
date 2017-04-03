@@ -283,8 +283,6 @@ def run_model():
     session_dir = os.path.join(model_dir, session)
     temp_dir = os.path.join(session_dir, "temp")
 
-    print model, stepIdx, runParams, allParams
-
     # Path to the model R script
     model_script = os.path.join(MODELS_DIRECTORY, model  + ".R")
 
@@ -351,7 +349,6 @@ def fetch_csv_column():
     filename = request.form["filename"]
     fieldnames = json.loads(request.form["fieldnames"])
 
-    print filename, fieldnames
     column_values = {}
     with open(os.path.join(temp_dir, filename)) as f:
         for row in csv.DictReader(f):
