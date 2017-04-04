@@ -22,12 +22,12 @@
 
                     body: [
                         # 1st column
-                        [ind_vars],
+                        [ind_vars, depvar],
 
                         # 2nd column
                         [
                             # Parameters stacked in rows
-                            depvar, geobrand, subject, period, lst_dim
+                            geobrand, subject, period, lst_dim
                         ]
                     ]
 

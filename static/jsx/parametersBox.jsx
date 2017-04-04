@@ -287,10 +287,9 @@ class ParametersDialog extends React.Component {
             case "checkbox":
                 return param.value ? param.returnValue[1] : param.returnValue[0];
 
-            case "dropdownEdit":
-                console.log(param);
             case "dragDrop":
             case "dropdown":
+            case "dropdownEdit":
                 // TODO: Remove when dropdown is fixed
                 if (!Array.isArray(param.value)) return '';
                 return param.value.join(', ');
@@ -462,35 +461,38 @@ class CreateSessionDialog extends React.Component {
         this.setState({errorMsg: null});
     }
 
-    createSession(e, data) {
-        const newSessionName = this.state.newSessionName;
+    createSession(event, data) {
+        if (event.key == "Enter") event.preventDefault();
 
-        /* Validate session name */
-        if (newSessionName == '') {
-            this.setState({errorMsg: "Session name cannot be empty"});
-        } else if (this.props.sessions.includes(newSessionName)) {
-            this.setState({errorMsg: "Session name already exists"});
-        } else {
-            const createSessionRequest= new XMLHttpRequest();
+        if (event.key == null || event.key == "Enter") {
+            const newSessionName = this.state.newSessionName;
 
-            createSessionRequest.addEventListener("load", request => {
-                const sessionName = JSON.parse(request.target.response);
+            /* Validate session name */
+            if (newSessionName == '') {
+                this.setState({errorMsg: "Session name cannot be empty"});
+            } else if (this.props.sessions.includes(newSessionName)) {
+                this.setState({errorMsg: "Session name already exists"});
+            } else {
+                const createSessionRequest= new XMLHttpRequest();
 
-                this.setState({sessionID: sessionId});
-                this.props.onCreateSession(sessionName);
-                this.props.onClose();
-            });
+                createSessionRequest.addEventListener("load", request => {
+                    const sessionName = JSON.parse(request.target.response);
 
-            createSessionRequest.addEventListener("error", request => {
-                // TODO: Handle error
-            });
+                    this.props.onCreateSession(sessionName);
+                    this.props.onClose();
+                });
 
-            const createSessionForm = new FormData();
-            createSessionForm.append("model", this.props.modelId);
-            createSessionForm.append("session", this.state.newSessionName);
+                createSessionRequest.addEventListener("error", request => {
+                    // TODO: Handle error
+                });
 
-            createSessionRequest.open("POST", "/create_session/");
-            createSessionRequest.send(createSessionForm);
+                const createSessionForm = new FormData();
+                createSessionForm.append("model", this.props.modelId);
+                createSessionForm.append("session", this.state.newSessionName);
+
+                createSessionRequest.open("POST", "/create_session/");
+                createSessionRequest.send(createSessionForm);
+            }
         }
     }
 
@@ -513,6 +515,7 @@ class CreateSessionDialog extends React.Component {
                         <Form.Field>
                             <label> Session name </label>
                             <Input focus placeholder="Enter unique session name"
+                                onKeyPress={this.createSession}
                                 onChange={this.setSessionName}
                                 error={errorMsg != null}
                             />
@@ -829,7 +832,9 @@ class ParametersBox extends React.Component {
     }
 
     openNewSessionDialog(e, data) {
-        this.setState({isCreateSessionDialogOpen: true});
+        if (this.state.modelId != null) {
+            this.setState({isCreateSessionDialogOpen: true});
+        }
     }
 
     fetchSessions(modelId) {
@@ -925,46 +930,50 @@ class ParametersBox extends React.Component {
     }
 
     saveSession(e, data) {
-        const saveSessionRequest= new XMLHttpRequest();
+        if (this.state.sessionId != null) {
+            const saveSessionRequest= new XMLHttpRequest();
 
-        saveSessionRequest.addEventListener("load", request => {
-            // TODO: Do something
-        });
+            saveSessionRequest.addEventListener("load", request => {
+                // TODO: Do something
+            });
 
-        saveSessionRequest.addEventListener("error", request => {
-            // TODO: Handle error
-        });
+            saveSessionRequest.addEventListener("error", request => {
+                // TODO: Handle error
+            });
 
-        const saveSessionForm = new FormData();
-        saveSessionForm.append("model", this.state.modelId);
-        saveSessionForm.append("session", this.state.sessionId);
+            const saveSessionForm = new FormData();
+            saveSessionForm.append("model", this.state.modelId);
+            saveSessionForm.append("session", this.state.sessionId);
 
-        saveSessionRequest.open("POST", "/save_session/");
-        saveSessionRequest.send(saveSessionForm);
+            saveSessionRequest.open("POST", "/save_session/");
+            saveSessionRequest.send(saveSessionForm);
+        }
     }
 
     deleteSession(e, data) {
-        const deleteSessionRequest = new XMLHttpRequest();
+        if (this.state.sessionId != null) {
+            const deleteSessionRequest = new XMLHttpRequest();
 
-        deleteSessionRequest.addEventListener("load", request => {
-            this.setState({
-                sessionId: null,
+            deleteSessionRequest.addEventListener("load", request => {
+                this.setState({
+                    sessionId: null,
 
-                sessions: this.state.sessions.filter(session =>
-                    session != this.state.sessionId)
+                    sessions: this.state.sessions.filter(session =>
+                        session != this.state.sessionId)
+                });
             });
-        });
 
-        deleteSessionRequest.addEventListener("error", request => {
-            // TODO: Handle error
-        });
+            deleteSessionRequest.addEventListener("error", request => {
+                // TODO: Handle error
+            });
 
-        const deleteSessionForm = new FormData();
-        deleteSessionForm.append("model", this.state.modelId);
-        deleteSessionForm.append("session", this.state.sessionId);
+            const deleteSessionForm = new FormData();
+            deleteSessionForm.append("model", this.state.modelId);
+            deleteSessionForm.append("session", this.state.sessionId);
 
-        deleteSessionRequest.open("POST", "/delete_session/");
-        deleteSessionRequest.send(deleteSessionForm);
+            deleteSessionRequest.open("POST", "/delete_session/");
+            deleteSessionRequest.send(deleteSessionForm);
+        }
     }
 
     restoreSession() {
@@ -993,7 +1002,7 @@ class ParametersBox extends React.Component {
 			<div>
                 <Form size="mini">
                     <Menu fluid>
-                        <Menu.Item name="New session" disabled={model == null}
+                        <Menu.Item name="New session" disabled={modelId == null}
                             onClick={this.openNewSessionDialog}/>
 
                         <Menu.Item name="Save session" disabled={sessionId == null}
@@ -1011,6 +1020,7 @@ class ParametersBox extends React.Component {
                                 onChange={this.selectModel}/>
 
                             <Dropdown selection scrolling placeholder="Select session"
+                                value={(sessionId != null) ? sessionId : ''}
                                 options={sessionDropdownChoice}
                                 onChange={this.selectSession}
                                 disabled={model == null}/>
