@@ -117,16 +117,33 @@ class ParametersDialog extends React.Component {
         this.goToPrevPage = this.goToPrevPage.bind(this);
         this.goToNextPage = this.goToNextPage.bind(this);
         this.readCsvColumn = this.readCsvColumn.bind(this);
+
+        this.updateDependentParams = this.updateDependentParams.bind(this);
     }
 
     componentWillReceiveProps(nextProps) {
         if (nextProps.step == null) return;
 
-        const {step, params, csvColumnValues} = nextProps;
+        let currPage = this.state.page;
+
+        /* Page must be reset when step changes */
+        if (this.props.stepIdx != nextProps.stepIdx) {
+            this.setState({page: 0});
+            currPage = 0;
+        }
+
+        const pageLayout = nextProps.step.layout[currPage];
+        const pageParams = pageLayout.usedParams;
+
+        this.updateDependentParams(pageParams);
+    }
+
+    updateDependentParams(paramsToUpdate) {
+        const {step, params, csvColumnValues} = this.props;
         const fieldnamesToFetch = {};
 
         /* Read all csv columns used in the current step */
-        for (let paramId of step.parameters) {
+        for (let paramId of paramsToUpdate) {
             const param = params[paramId];
 
             if (param.source != null && param.source.action == "readCSV") {
@@ -144,28 +161,18 @@ class ParametersDialog extends React.Component {
                     }
 
                     csvColumnsToFetch.map(val => {
-                        if (param.source.id == "geobrand") console.log(val)
-
                         if (!this.props.csvColumnValues.hasOwnProperty(val)) {
                             fieldnames[val] = uniqueOnly;
-                            console.log(fieldnames)
                         }
                     });
                 }
             }
         }
 
-        console.log(fieldnamesToFetch["phy_mmx_data.csv"])
-
         /* Send one request per csv file */
         for (let filename in fieldnamesToFetch) {
             const fieldnames = fieldnamesToFetch[filename];
             this.readCsvColumn(filename, fieldnames);
-        }
-
-        /* Page must be reset when step changes */
-        if (this.props.stepIdx != nextProps.stepIdx) {
-            this.setState({page: 0});
         }
     }
 
@@ -338,13 +345,21 @@ class ParametersDialog extends React.Component {
     }
 
     goToPrevPage() {
+        const nextPageLayout = this.props.step.layout[this.state.page - 1];
+        const nextPageParams = nextPageLayout.usedParams;
+
+        this.updateDependentParams(nextPageParams);
         this.setState({page: this.state.page - 1});
     }
 
     goToNextPage() {
         if (!this.validateParams()) return;
 
-        if (this.state.page < this.props.step.layout.length - 1) {
+        if (this.state.page + 1 < this.props.step.layout.length) {
+            const nextPageLayout = this.props.step.layout[this.state.page + 1];
+            const nextPageParams = nextPageLayout.usedParams;
+
+            this.updateDependentParams(nextPageParams);
             this.setState({page: this.state.page + 1});
         } else {
             this.runModel();
@@ -353,14 +368,15 @@ class ParametersDialog extends React.Component {
 
     resetParams() {
         const {step, params} = this.props;
+        const page = step.layout[this.state.page];
 
-        const stepParams = step.parameters.map(paramId =>
+        const pageParams = page.usedParams.map(paramId =>
             params[paramId]
         );
 
-        this.props.resetParams(stepParams);
+        this.props.resetParams(pageParams);
 
-        step.parameters.forEach(paramId =>
+        page.usedParams.forEach(paramId =>
             this.props.onChange(paramId, params[paramId].value)
         );
     }
@@ -536,7 +552,7 @@ class ParametersBox extends React.Component {
             sessions: [],
 
 
-            /* Name of the currently selected model */
+            /* Name of the currently used model */
             modelId: null,
 
             /* Name of the currently selected session */
@@ -589,14 +605,40 @@ class ParametersBox extends React.Component {
 		this.fetchModelsMetadata();
 	}
 
+    getPageParams(params, layout) {
+        if (layout == null) return;
+
+        if (!Array.isArray(layout)) {
+            params.push(layout);
+            return;
+        }
+
+        for (let elem of layout) {
+            this.getPageParams(params, elem);
+        }
+    }
+
 	fetchModelsMetadata() {
         const fetchModelsMetadataRequest = new XMLHttpRequest();
 
         fetchModelsMetadataRequest.addEventListener("load", request => {
             const {username, models} = JSON.parse(request.target.response);
 
+            /* Stack together all parameters on per page basis */
+            for (let model of Object.values(models)) {
+                for (let step of Object.values(model.steps)) {
+                    for (let pageIdx in step.layout) {
+                        const page = step.layout[pageIdx];
+
+                        const pageParams = page.usedParams = [];
+                        this.getPageParams(pageParams, page.header);
+                        this.getPageParams(pageParams, page.body);
+                    }
+                }
+            }
+
             this.setState({modelsInfo: models});
-            this.props.updateUsername(username);
+            this.props.onUsernameChange(username);
         });
 
         fetchModelsMetadataRequest.addEventListener("error", request => {
@@ -662,7 +704,7 @@ class ParametersBox extends React.Component {
 
 		runModelRequest.addEventListener("load", request => {
             const {consoleOutput, plots} = JSON.parse(request.target.response);
-            this.props.returnModelOutput(consoleOutput, plots);
+            this.props.onModelOutputChange(consoleOutput, plots);
 
             const model = this.state.modelsInfo[this.state.modelId];
 
@@ -702,22 +744,34 @@ class ParametersBox extends React.Component {
         newParams[paramId] = Object.assign({}, newParams[paramId]);
 
         newParams[paramId].value = newValue;
-		this.setState({modelParams: newParams});
 
-        /* Remove CSV columns which are outdated */
+        /* Check if param is used as a source param */
         if (this.srcParams.hasOwnProperty(paramId)) {
-            const newCsvColumnValues = Object.assign({}, this.state.csvColumnValues);
+            const srcParam = this.srcParams[paramId];
 
-            if (Array.isArray(newValue)) {
-                newValue.forEach(value => {
-                    delete newCsvColumnValues[value];
-                });
+            if (srcParam.action == "readCSV") {
+                const newCsvColumnValues = Object.assign({}, this.state.csvColumnValues);
+
+                /* Remove CSV columns which are outdated */
+                if (Array.isArray(newValue)) {
+                    newValue.forEach(value => {
+                        delete newCsvColumnValues[value];
+                    });
+                } else {
+                    delete newCsvColumnValues[newValue];
+                }
+
+                this.setState({csvColumnValues: newCsvColumnValues});
             } else {
-                delete newCsvColumnValues[newValue];
+                /* Reset all parameters which use this as source */
+                srcParam.targetIds.forEach(targetId => {
+                    newParams[targetId] = Object.assign({}, newParams[targetId]);
+                    newParams[targetId].value = newParams[targetId].defaultValue;
+                });
             }
-
-            this.setState({csvColumnValues: newCsvColumnValues});
         }
+
+        this.setState({modelParams: newParams});
 	}
 
     selectModel(event, data) {
@@ -739,14 +793,23 @@ class ParametersBox extends React.Component {
             modelParams: modelParams
         });
 
+        this.props.onModelChange(modelId);
+
         /* Reset source parameters list */
         this.srcParams = {};
         for (let paramId in model.parameters) {
-            const param = model.parameters[paramId]
+            const param = model.parameters[paramId];
 
             /* Make a note of all parameters used as an entry to a resource(eg. CSV) */
-            if (param.source != null && param.source.action == "readCSV") {
-                this.srcParams[param.source.id] = true;
+            if (param.source != null) {
+                if (this.srcParams[param.source.id] != null) {
+                    this.srcParams[param.source.id].targetIds.push(paramId);
+                } else {
+                    this.srcParams[param.source.id] = {
+                        action: param.source.action,
+                        targetIds: [paramId]
+                    }
+                }
             }
         }
 
@@ -787,7 +850,7 @@ class ParametersBox extends React.Component {
     selectSession(event, data) {
         const sessionId = data.value;
 
-        this.props.selectSession(sessionId);
+        this.props.onSessionChange(sessionId);
         this.setState({sessionId: sessionId, stepIdx: 0});
 
         this.loadSession(this.state.modelId, sessionId);
@@ -795,7 +858,7 @@ class ParametersBox extends React.Component {
 
     // Add session to the sorted session list
     addSession(newSession) {
-        // TODO: Use binary search to imporove performance
+        // TODO: Use binary search to improve performance
         const newSessions = this.state.sessions.slice();
         newSessions.push(newSession);
 
@@ -833,7 +896,7 @@ class ParametersBox extends React.Component {
                 this.setState({stepIdx: sessionMetadata.stepIdx});
 
                 /* Restore plots list for this session*/
-                this.props.fetchPlots(sessionMetadata.plots);
+                this.props.onPlotsFetch(sessionMetadata.plots);
             } else {
                 /* Reset step index and parameters to defaults */
                 this.resetParamsToDefaults(newParams);
@@ -945,7 +1008,6 @@ class ParametersBox extends React.Component {
                                 onChange={this.selectModel}/>
 
                             <Dropdown selection scrolling placeholder="Select session"
-                                value={this.state.sessionId}
                                 options={sessionDropdownChoice}
                                 onChange={this.selectSession}
                                 disabled={model == null}/>

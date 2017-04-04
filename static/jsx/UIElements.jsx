@@ -92,17 +92,17 @@ function RadioParam(props) {
 }
 
 function DropdownParam(props) {
-    const {name, description, value=[], defaultValue} = props.parameter;
+    const {name, description, value=[]} = props.parameter;
 
     let dropdownOptions = [];
     if (props.options != null) {
         dropdownOptions = props.options.map((item, idx) => ({
-            key: idx, text: item, value: item
+            value: item, text: item, key: idx
         }));
     }
 
     return (
-        <Form.Field error={defaultValue == null && value.length <= 0}>
+        <Form.Field error={props.isError}>
             <Popup on="hover" content={description} trigger={
                 <label> {name} </label>
             }/>
@@ -117,37 +117,57 @@ function DropdownParam(props) {
 
 class DropdownEditParam extends React.Component {
     componentWillMount() {
-        return;
-        const value = this.props.parameter.value;
+        const {parameter, options, onChange} = this.props;
+        this.resetParameterValue(parameter, options, onChange);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        const {parameter, options, onChange} = nextProps;
+        this.resetParameterValue(parameter, options, onChange);
+    }
+
+    resetParameterValue(param, options, onChange) {
+        if (options == null) return;
 
         /* Initialize dropdown values */
-        if (!Array.isArray(value) || (this.props.options != null && value.length != this.props.options.length)) {
-            const newValue = [];
-
-            if (this.props.options == null) return;
-            for (let i = 0; i < this.props.options.length; i++) {
-                newValue.push(this.props.parameter.defaultValue);
-            }
-
-            this.props.onChange(newValue);
+        if (param.value == null) {
+            const defaultVal = param.fieldDefaultValue;
+            onChange(this.getDefaultValue(options.length, defaultVal));
         }
     }
 
+    getDefaultValue(size, defaultValue) {
+        const newValue = [];
+
+        for (let i = 0; i < size; i++) {
+            newValue.push(defaultValue);
+        }
+
+        return newValue;
+    }
+
     render() {
-        const {name, description, value} = this.props.parameter;
+        const {name, description, fieldDefaultValue} = this.props.parameter;
+        let {value=[]} = this.props.parameter;
+
+        /* Reset value to default if necessary */
+        if (this.props.options != null && value.length <= 0) {
+            value = this.getDefaultValue(this.props.options.length, fieldDefaultValue);
+        }
 
         let dropdownOptions = [];
-        if (this.props.options != null) {
+        if (this.props.options != null && value != null) {
             dropdownOptions = this.props.options.map((item, idx) => ({
-                key: idx,
-                text: item,
                 value: item,
+                text: item,
+                key: idx,
 
                 content: (
                     <Input focus value={value[idx]} label={{content: item}}
                         onChange={(e, data) => {
                             const newValue = value.slice();
 
+                            console.log('kita', value)
                             newValue[idx] = data.value;
                             this.props.onChange(newValue);
                         }
@@ -205,7 +225,8 @@ function getMarks(min, max, step, unit, markCnt, dataSet) {
 }
 
 function SliderParam(props) {
-    const {name, value=0, unit='', choice, step, markCnt=0} = props.parameter;
+    const {name, unit='', choice, step, markCnt=0} = props.parameter;
+    let {value=0} = props.parameter;
     const [min, max] = choice;
 
     /* Construct marks object */
@@ -251,7 +272,8 @@ function SliderParam(props) {
 }
 
 function RangeParam(props) {
-    const {name, value=[0, 0], choice, step=1, markCnt=0, unit=''} = props.parameter;
+    const {name, choice, step=1, markCnt=0, unit=''} = props.parameter;
+    let {value=[0, 0]} = props.parameter;
 
     let [min, max] = [0, 0];
     if (choice != null) {

@@ -138,7 +138,14 @@ def get_plots(dirname, stepId=None):
     plots_regex = stepId + "*.html" if stepId is not None else "*.html"
     plots = glob.glob(os.path.join(dirname, plots_regex))
 
-    return [os.path.relpath(plot, destination)[:-5] for plot in plots]
+    plotsMetadata = []
+    for plot in plots:
+        plotsMetadata.append({
+            "name": os.path.relpath(plot, dirname),
+            "path": plot
+        })
+
+    return plotsMetadata
 
 @app.route("/load_session/", methods=["POST"])
 def load_session():
@@ -323,18 +330,6 @@ def upload_csv_file():
         logging.error(e)
 
     return json.dumps(csv_fieldnames)
-
-@app.route("/fetch_plots/", methods=["POST"])
-def fetch_plots():
-    user_dirname = get_user_dirpath(auth.username())
-    destination = os.path.join(user_dirname, request.form["session"])
-
-    step_id = request.form["stepId"]
-
-    plots = glob.glob(os.path.join(destination, step_id.capitalize() + "*.html"))
-    plots = [os.path.relpath(plot, destination)[:-5] for plot in plots]
-
-    return json.dumps(plots)
 
 @app.route("/fetch_csv_columns/", methods=["POST"])
 def fetch_csv_column():

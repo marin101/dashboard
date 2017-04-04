@@ -352,7 +352,7 @@
             name: "List of prior values",
             description: "List of prior values",
 
-            defaultValue: '',
+            fieldDefaultValue: '',
             source: {id: ind_vars, action: "paramValue"}
         },
 
@@ -399,7 +399,7 @@
             name: "Enter per unit channel costs",
             description: "Required for calculating ROI",
 
-            defaultValue: 1,
+            fieldDefaultValue: 1,
             source: {id: ind_vars, action: "paramValue"}
         },
 

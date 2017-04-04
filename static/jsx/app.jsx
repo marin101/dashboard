@@ -16,44 +16,52 @@ class Application extends React.Component {
         super();
 
         this.state = {
-            consoleOutput: [],
-            plotList: [],
-
-            sessionId: null,
             username: null,
 
-            size: "20vw"
+            modelId: null,
+            sessionId: null,
+
+            plotList: [],
+            consoleOutput: []
         };
 
-        this.onModelsMetadataFetch = this.onModelsMetadataFetch.bind(this);
-        this.onSessionSelect = this.onSessionSelect.bind(this);
+        this.storeModelOutput = this.storeModelOutput.bind(this);
 
-        this.onPlotsFetch = this.onPlotsFetch.bind(this);
-        this.onModelOutput = this.onModelOutput.bind(this);
+        this.storeUsername = this.storeUsername.bind(this);
+        this.storeModelId = this.storeModelId.bind(this);
+        this.storeSessionId = this.storeSessionId.bind(this);
+
+        this.storePlots= this.storePlots.bind(this);
+        this.storeModelOutput = this.storeModelOutput.bind(this);
     }
 
-    onModelOutput(consoleOutput, plots) {
+    storeModelOutput(consoleOutput, plots) {
         this.setState({
             consoleOutput: consoleOutput,
             plotList: plots
         });
     }
 
-    onModelsMetadataFetch(username) {
+    storeUsername(username) {
         this.setState({username: username});
     }
 
-    onSessionSelect(sessionId) {
+    storeSessionId(sessionId) {
         this.setState({sessionId: sessionId});
     }
 
-    onPlotsFetch(plots) {
+    storePlots(plots) {
         this.setState({plotList: plots});
     }
 
-	render() {
-        const {username, sessionId} = this.state;
+    storeModelId(modelId) {
+        this.setState({modelId: modelId});
+    }
 
+	render() {
+        const {username, modelId, sessionId, plotList} = this.state;
+
+        console.log(username, modelId, sessionId, plotList);
         const applicationStyle = {
             flexDirection: "column",
             display: "flex",
@@ -81,16 +89,17 @@ class Application extends React.Component {
                 <Sidebar.Pushable>
                     <Sidebar visible={true}>
                         <ParametersBox sessionId={sessionId}
-                            updateUsername={this.onModelsMetadataFetch}
-                            returnModelOutput={this.onModelOutput}
-                            selectSession={this.onSessionSelect}
-                            fetchPlots={this.onPlotsFetch}/>
+                            onUsernameChange={this.storeUsername}
+                            onModelOutputChange={this.storeModelOutput}
+                            onSessionChange={this.storeSessionId}
+                            onModelChange={this.storeModelId}
+                            onPlotsFetch={this.storePlots}/>
                     </Sidebar>
 
                     <Sidebar.Pusher>
                         <SplitPane split="horizontal" size={"70%"}>
-                            <ModelOutputBox username={username} sessionId={sessionId}
-                                plotList={this.state.plotList}/>
+                            <ModelOutputBox username={username} modelId={modelId}
+                                sessionId={sessionId} plotList={plotList}/>
                             <ConsoleOutputBox output={this.state.consoleOutput}/>
                         </SplitPane>
                     </Sidebar.Pusher>

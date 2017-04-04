@@ -30,13 +30,17 @@ class ModelOutputBox extends React.Component {
             width: "100%"
         };
 
-        const {username, sessionId} = this.props;
-        const plotName = this.props.plotList[this.state.plotIdx] + ".html"
-        const plotPath = "/static/users/" + username + '/' + sessionId + '/' + plotName;
+        let plotName, plotPath;
+        if (this.state.plotIdx) {
+            plotName = this.props.plotList[this.state.plotIdx].name;
+            plotPath = this.props.plotList[this.state.plotIdx].path
+        }
 
         const plotOptions = this.props.plotList.map((plotName, idx) => ({
-            key: idx, text: plotName, value: idx
+            key: idx, text: plotName.name, value: idx
         }));
+
+        console.log(plotName, plotPath)
 
 		return (
 			<div style={{width: "100%"}}>
@@ -56,7 +60,9 @@ class ModelOutputBox extends React.Component {
 				</Header>
 
                 {this.state.plotIdx != null &&
-                    <object data={plotPath} style={plotStyle}> {plotName} </object>
+                    <object data={plotPath} style={plotStyle}>
+                        {plotName}
+                    </object>
                 }
 			</div>
 		);
