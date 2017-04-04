@@ -242,7 +242,7 @@ class ParametersDialog extends React.Component {
 
                     // TODO: Support handling of multiple values???
                     const csvValues = this.getCsvColumnValues(srcParam.value[0]);
-                    return csvValues[param.value[0]] + ", " + csvValues[param.value[1] + 1];
+                    return csvValues[param.value[0]] + ", " + csvValues[param.value[1]];
                 }
 
                 if (param.returnValue != null) {
@@ -250,7 +250,7 @@ class ParametersDialog extends React.Component {
                     const choice = param.choice;
 
                     const k = (retVal[1] - retVal[0]) / (choice[1] - choice[0]);
-                    const l = (retVal[0] - k*choice[0]);
+                    const l = retVal[0] - k*choice[0];
 
                     /* Linear mapping from input to ouptput range */
                     return param.value.map(val => (k*val + l)).join(", ");
@@ -274,7 +274,7 @@ class ParametersDialog extends React.Component {
 
                     /* Linear mapping coefficients */
                     const k = (retVal[1] - retVal[0]) / (choice[1] - choice[0]);
-                    const l = (retVal[0] - k*choice[0]);
+                    const l = retVal[0] - k*choice[0];
 
                     return k*param.value + l;
                 }
@@ -287,9 +287,10 @@ class ParametersDialog extends React.Component {
             case "checkbox":
                 return param.value ? param.returnValue[1] : param.returnValue[0];
 
+            case "dropdownEdit":
+                console.log(param);
             case "dragDrop":
             case "dropdown":
-            case "dropdownEdit":
                 // TODO: Remove when dropdown is fixed
                 if (!Array.isArray(param.value)) return '';
                 return param.value.join(', ');
@@ -474,6 +475,8 @@ class CreateSessionDialog extends React.Component {
 
             createSessionRequest.addEventListener("load", request => {
                 const sessionName = JSON.parse(request.target.response);
+
+                this.setState({sessionID: sessionId});
                 this.props.onCreateSession(sessionName);
                 this.props.onClose();
             });

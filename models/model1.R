@@ -61,9 +61,9 @@ if (as.integer(run) == 1) {
   mixnmatch = cmdArgs[11]
   drop_period = cmdArgs[12]
   drop_subject = cmdArgs[13]
-  use_trendseas = cmdArgs[15]
-  lst_cost = cmdArgs[16]
-  margin = cmdArgs[17]
+  use_trendseas = cmdArgs[14]
+  lst_cost = cmdArgs[15]
+  margin = cmdArgs[16]
 
   print(paste("Model parameters: ",
               'use_geobrand = ', use_geobrand,

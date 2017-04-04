@@ -34,8 +34,10 @@ function TextParam(props) {
     switch (props.parameter.validation) {
         case "integer":
             valueType = "number";
+            break;
         case "hidden":
             valueType: "password";
+            break;
         default:
             valueType = "text";
     }
