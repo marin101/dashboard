@@ -65,6 +65,8 @@
                          use_prior, lst_prior, mixnmatch, drop_period, drop_subject,
                          use_trendseas, lst_cost, margin],
 
+            csvOutput: true,
+
             layout: [
                 {
                     body: [
@@ -81,6 +83,8 @@
             description: "Top-down channel optimization for different scenarios",
 
             parameters: [optim_goal, budget_factor, sales_factor],
+
+            csvOutput: true,
 
             layout: [
                 {
@@ -352,7 +356,7 @@
             name: "List of prior values",
             description: "List of prior values",
 
-            fieldDefaultValue: '',
+            fieldDefaultValue: [''],
             source: {id: ind_vars, action: "paramValue"}
         },
 
@@ -399,7 +403,7 @@
             name: "Enter per unit channel costs",
             description: "Required for calculating ROI",
 
-            fieldDefaultValue: 1,
+            fieldDefaultValue: [1],          # Array of values for each field, last entry is for all other fields
             source: {id: ind_vars, action: "paramValue"}
         },
 

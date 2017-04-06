@@ -356,6 +356,10 @@ def fetch_csv_column():
 
     return json.dumps(column_values)
 
+@app.route("/download_csv_output/", methods=["POST"])
+def download_csv_output():
+    return json.dumps(None)
+
 if __name__ == "__main__":
     try:
         os.makedirs(MODELS_DIRECTORY)
@@ -367,7 +371,7 @@ if __name__ == "__main__":
     except OSError:
         pass
 
-#    app.run(debug = True, threaded = True)
+    app.run(debug = True, threaded = True)
 
     HTTPServer = WSGIServer((IP_ADDRESS, PORT), app)
     HTTPServer.serve_forever()

@@ -110,15 +110,10 @@ class ParametersDialog extends React.Component {
             page: 0
         };
 
-        this.csvOperationActive = false;
-
         this.runModel = this.runModel.bind(this);
         this.resetParams = this.resetParams.bind(this);
         this.goToPrevPage = this.goToPrevPage.bind(this);
         this.goToNextPage = this.goToNextPage.bind(this);
-        this.readCsvColumn = this.readCsvColumn.bind(this);
-
-        this.updateDependentParams = this.updateDependentParams.bind(this);
     }
 
     componentWillReceiveProps(nextProps) {
@@ -135,45 +130,7 @@ class ParametersDialog extends React.Component {
         const pageLayout = nextProps.step.layout[currPage];
         const pageParams = pageLayout.usedParams;
 
-        this.updateDependentParams(pageParams);
-    }
-
-    updateDependentParams(paramsToUpdate) {
-        const {step, params, csvColumnValues} = this.props;
-        const fieldnamesToFetch = {};
-
-        /* Read all csv columns used in the current step */
-        for (let paramId of paramsToUpdate) {
-            const param = params[paramId];
-
-            if (param.source != null && param.source.action == "readCSV") {
-                const uniqueOnly = param.source.unique == true;
-
-                const csvColumnsToFetch = params[param.source.id].value;
-                const filename = params[param.source.file].value;
-
-                if (filename != null && csvColumnsToFetch != null) {
-                    let fieldnames = fieldnamesToFetch[filename];
-
-                    /* Initialize if entry doesn't exist */
-                    if (fieldnamesToFetch[filename] == null) {
-                        fieldnames = fieldnamesToFetch[filename] = {};
-                    }
-
-                    csvColumnsToFetch.map(val => {
-                        if (!this.props.csvColumnValues.hasOwnProperty(val)) {
-                            fieldnames[val] = uniqueOnly;
-                        }
-                    });
-                }
-            }
-        }
-
-        /* Send one request per csv file */
-        for (let filename in fieldnamesToFetch) {
-            const fieldnames = fieldnamesToFetch[filename];
-            this.readCsvColumn(filename, fieldnames);
-        }
+        this.props.updateDependentParams(pageParams);
     }
 
     uploadCsvFile(paramId, event) {
@@ -304,37 +261,6 @@ class ParametersDialog extends React.Component {
         this.props.onClose();
     }
 
-    readCsvColumn(filename, fieldnames) {
-        if (!this.csvOperationActive && Object.keys(fieldnames).length > 0) {
-            this.csvOperationActive = true;
-
-            const fetchCsvColumnRequest = new XMLHttpRequest();
-
-            fetchCsvColumnRequest.addEventListener("load", request => {
-                const csvColumns = JSON.parse(request.target.response);
-                for (let column in csvColumns.values) column.sort();
-
-                // TODO Add sorting function for strings
-                this.props.updateCsvColumnValues(csvColumns);
-                this.csvOperationActive = false;
-            });
-
-            fetchCsvColumnRequest.addEventListener("error", request => {
-                // TODO: Handle error
-                this.csvOperationActive = false;
-            });
-
-            const csvFieldnameForm = new FormData();
-            csvFieldnameForm.set("model", this.props.modelId);
-            csvFieldnameForm.set("session", this.props.sessionId);
-            csvFieldnameForm.set("fieldnames", JSON.stringify(fieldnames));
-            csvFieldnameForm.set("filename", filename);
-
-            fetchCsvColumnRequest.open("POST", "/fetch_csv_columns/");
-            fetchCsvColumnRequest.send(csvFieldnameForm);
-        }
-    }
-
     validateParams() {
         // TODO:Validate current page parameters
         return true;
@@ -348,7 +274,7 @@ class ParametersDialog extends React.Component {
         const nextPageLayout = this.props.step.layout[this.state.page - 1];
         const nextPageParams = nextPageLayout.usedParams;
 
-        this.updateDependentParams(nextPageParams);
+        this.props.updateDependentParams(nextPageParams);
         this.setState({page: this.state.page - 1});
     }
 
@@ -359,7 +285,7 @@ class ParametersDialog extends React.Component {
             const nextPageLayout = this.props.step.layout[this.state.page + 1];
             const nextPageParams = nextPageLayout.usedParams;
 
-            this.updateDependentParams(nextPageParams);
+            this.props.updateDependentParams(nextPageParams);
             this.setState({page: this.state.page + 1});
         } else {
             this.runModel();
@@ -583,8 +509,11 @@ class ParametersBox extends React.Component {
             errorMsg: null,
 		};
 
+        this.sessionLoading = false;
+        this.csvOperationActive = false;
+
         // Parameters whose values are csv column fieldnames which will be used
-        this.srcParams = {};
+        this.sourceParams = {};
 
         this.addSession = this.addSession.bind(this);
         this.saveSession = this.saveSession.bind(this);
@@ -599,12 +528,14 @@ class ParametersBox extends React.Component {
         this.fetchSessions = this.fetchSessions.bind(this);
         this.selectSession = this.selectSession.bind(this);
 
+        this.readCsvColumn = this.readCsvColumn.bind(this);
         this.changeParamValue = this.changeParamValue.bind(this);
 
         this.openParamsDialog = this.openParamsDialog.bind(this);
         this.openNewSessionDialog = this.openNewSessionDialog.bind(this);
 
         this.updateCsvColumnValues = this.updateCsvColumnValues.bind(this);
+        this.updateDependentParams = this.updateDependentParams.bind(this);
 	}
 
 	componentDidMount() {
@@ -705,6 +636,76 @@ class ParametersBox extends React.Component {
         }
     }
 
+    readCsvColumn(filename, fieldnames) {
+        if (!this.csvOperationActive && Object.keys(fieldnames).length > 0) {
+            this.csvOperationActive = true;
+
+            const fetchCsvColumnRequest = new XMLHttpRequest();
+
+            fetchCsvColumnRequest.addEventListener("load", request => {
+                const csvColumns = JSON.parse(request.target.response);
+                for (let column in csvColumns.values) column.sort();
+
+                // TODO Add sorting function for strings
+                this.updateCsvColumnValues(csvColumns);
+                this.csvOperationActive = false;
+            });
+
+            fetchCsvColumnRequest.addEventListener("error", request => {
+                // TODO: Handle error
+                this.csvOperationActive = false;
+            });
+
+            const csvFieldnameForm = new FormData();
+            csvFieldnameForm.set("model", this.state.modelId);
+            csvFieldnameForm.set("session", this.state.sessionId);
+            csvFieldnameForm.set("fieldnames", JSON.stringify(fieldnames));
+            csvFieldnameForm.set("filename", filename);
+
+            fetchCsvColumnRequest.open("POST", "/fetch_csv_columns/");
+            fetchCsvColumnRequest.send(csvFieldnameForm);
+        }
+    }
+
+    updateDependentParams(paramsToUpdate) {
+        const {modelId, modelParams, csvColumnValues} = this.state;
+        const step = this.state.modelsInfo[modelId];
+        const fieldnamesToFetch = {};
+
+        /* Read all csv columns used by the given params */
+        for (let paramId of paramsToUpdate) {
+            const param = modelParams[paramId];
+
+            if (param.source != null && param.source.action == "readCSV") {
+                const uniqueOnly = param.source.unique == true;
+
+                const csvColumnsToFetch = modelParams[param.source.id].value;
+                const filename = modelParams[param.source.file].value;
+
+                if (filename != null && csvColumnsToFetch != null) {
+                    let fieldnames = fieldnamesToFetch[filename];
+
+                    /* Initialize if entry doesn't exist */
+                    if (fieldnamesToFetch[filename] == null) {
+                        fieldnames = fieldnamesToFetch[filename] = {};
+                    }
+
+                    csvColumnsToFetch.map(val => {
+                        if (!this.state.csvColumnValues.hasOwnProperty(val)) {
+                            fieldnames[val] = uniqueOnly;
+                        }
+                    });
+                }
+            }
+        }
+
+        /* Send one request per csv file */
+        for (let filename in fieldnamesToFetch) {
+            const fieldnames = fieldnamesToFetch[filename];
+            this.readCsvColumn(filename, fieldnames);
+        }
+    }
+
 	runModel(currStep, runParamValues) {
 		const runModelRequest = new XMLHttpRequest();
 
@@ -752,8 +753,8 @@ class ParametersBox extends React.Component {
         newParams[paramId].value = newValue;
 
         /* Check if param is used as a source param */
-        if (this.srcParams.hasOwnProperty(paramId)) {
-            const srcParam = this.srcParams[paramId];
+        if (this.sourceParams.hasOwnProperty(paramId)) {
+            const srcParam = this.sourceParams[paramId];
 
             if (srcParam.action == "readCSV") {
                 const newCsvColumnValues = Object.assign({}, this.state.csvColumnValues);
@@ -770,10 +771,11 @@ class ParametersBox extends React.Component {
                 this.setState({csvColumnValues: newCsvColumnValues});
             } else {
                 /* Reset all parameters which use this as source */
-                srcParam.targetIds.forEach(targetId => {
-                    newParams[targetId] = Object.assign({}, newParams[targetId]);
-                    newParams[targetId].value = newParams[targetId].defaultValue;
-                });
+                const targetParams = srcParam.targetIds.map(targetId =>
+                    Object.assign({}, newParams[targetId])
+                );
+
+                this.resetParamsToDefaults(targetParams);
             }
         }
 
@@ -785,7 +787,6 @@ class ParametersBox extends React.Component {
         const model = this.state.modelsInfo[modelId];
 
         // TODO: Spare us of the deep copy
-        /* Deep copy */
         const modelParams = {};
         for (let key in model.parameters) {
             const param = model.parameters[key];
@@ -802,16 +803,16 @@ class ParametersBox extends React.Component {
         this.props.onModelChange(modelId);
 
         /* Reset source parameters list */
-        this.srcParams = {};
+        this.sourceParams = {};
         for (let paramId in model.parameters) {
             const param = model.parameters[paramId];
 
             /* Make a note of all parameters used as an entry to a resource(eg. CSV) */
             if (param.source != null) {
-                if (this.srcParams[param.source.id] != null) {
-                    this.srcParams[param.source.id].targetIds.push(paramId);
+                if (this.sourceParams[param.source.id] != null) {
+                    this.sourceParams[param.source.id].targetIds.push(paramId);
                 } else {
-                    this.srcParams[param.source.id] = {
+                    this.sourceParams[param.source.id] = {
                         action: param.source.action,
                         targetIds: [paramId]
                     }
@@ -880,53 +881,60 @@ class ParametersBox extends React.Component {
     }
 
     loadSession(modelId, sessionId) {
-        const loadSessionRequest= new XMLHttpRequest();
+        if (!this.sessionLoading) {
+            this.sessionLoading = true;
 
-        loadSessionRequest.addEventListener("load", request => {
-            const newParams = Object.assign({}, this.state.modelParams);
+            const loadSessionRequest= new XMLHttpRequest();
 
-            /* Deep copy of parameters */
-            Object.keys(newParams).forEach(paramId => {
-                newParams[paramId] = Object.assign({}, newParams[paramId]);
-            });
+            loadSessionRequest.addEventListener("load", request => {
+                const newParams = Object.assign({}, this.state.modelParams);
 
-            const sessionMetadata = JSON.parse(request.target.response);
-
-            if (Object.keys(sessionMetadata).length > 0) {
-                const paramValues = sessionMetadata.paramValues;
-
-                /* Restore parameter values for this session */
-                Object.keys(paramValues).forEach(paramId => {
-                    newParams[paramId].value = paramValues[paramId];
+                /* Deep copy of parameters */
+                Object.keys(newParams).forEach(paramId => {
+                    newParams[paramId] = Object.assign({}, newParams[paramId]);
                 });
 
-                /* Restore step index for this session */
-                this.setState({stepIdx: sessionMetadata.stepIdx});
+                const sessionMetadata = JSON.parse(request.target.response);
 
-                /* Restore plots list for this session*/
-                this.props.onPlotsFetch(sessionMetadata.plots);
-            } else {
-                /* Reset step index and parameters to defaults */
-                this.resetParamsToDefaults(newParams);
-                this.setState({stepIdx: 0});
-            }
+                if (Object.keys(sessionMetadata).length > 0) {
+                    const paramValues = sessionMetadata.paramValues;
 
-            this.setState({
-                modelParams: newParams,
-                csvColumnValues: {}
+                    /* Restore parameter values for this session */
+                    Object.keys(paramValues).forEach(paramId => {
+                        newParams[paramId].value = paramValues[paramId];
+                    });
+
+                    /* Restore step index for this session */
+                    this.setState({stepIdx: sessionMetadata.stepIdx});
+
+                    /* Restore plots list for this session*/
+                    this.props.onPlotsFetch(sessionMetadata.plots);
+                } else {
+                    /* Reset step index and parameters to defaults */
+                    this.resetParamsToDefaults(newParams);
+                    this.setState({stepIdx: 0});
+                }
+
+                this.setState({modelParams: newParams});
+                this.updateDependentParams(Object.keys(newParams));
+
+                this.sessionLoading = false;
             });
-        });
 
-        loadSessionRequest.addEventListener("error", request => {
-            // TODO: Handle error
-        });
+            loadSessionRequest.addEventListener("error", request => {
+                // TODO: Handle error
+                this.sessionLoading = false;
+            });
 
-        const loadSessionForm = new FormData();
-        loadSessionForm.append("model", modelId);
-        loadSessionForm.append("session", sessionId);
+            this.setState({csvColumnValues: {}});
 
-        loadSessionRequest.open("POST", "/load_session/");
-        loadSessionRequest.send(loadSessionForm);
+            const loadSessionForm = new FormData();
+            loadSessionForm.append("model", modelId);
+            loadSessionForm.append("session", sessionId);
+
+            loadSessionRequest.open("POST", "/load_session/");
+            loadSessionRequest.send(loadSessionForm);
+        }
     }
 
     saveSession(e, data) {
@@ -980,6 +988,12 @@ class ParametersBox extends React.Component {
         // TODO: Retreive session information from temp, not saved
     }
 
+    exportCsv(e, data) {
+        if (step.csvOutput) {
+
+        }
+    }
+
 	render() {
         const {modelsInfo, modelId, sessionId, stepIdx, modelParams} = this.state;
 
@@ -1015,6 +1029,14 @@ class ParametersBox extends React.Component {
 
                     <Menu vertical fluid>
                         <Menu.Item>
+                            {/*
+                            <Button primary onClick={this.exportCsv}>
+                                Download as CSV
+                            </Button>
+                            */}
+                        </Menu.Item>
+
+                        <Menu.Item>
                             <Dropdown selection scrolling placeholder="Select model"
                                 options={modelDropdownChoice}
                                 onChange={this.selectModel}/>
@@ -1036,28 +1058,27 @@ class ParametersBox extends React.Component {
                                 onClick={this.openParamsDialog}/>
                         )}
                     </Menu>
-
-                    <Button primary> Export as csv </Button>
                 </Form>
 
-                <DragDropContainer isOpen={this.state.isParamsDialogOpen}
-                    onClose={() => {this.setState({isParamsDialogOpen: false})}}
+                {!this.sessionLoading &&
+                    <DragDropContainer isOpen={this.state.isParamsDialogOpen}
+                        onClose={() => {this.setState({isParamsDialogOpen: false})}}
 
-                    csvColumnValues={this.state.csvColumnValues}
-                    updateCsvColumnValues={this.updateCsvColumnValues}
+                        csvColumnValues={this.state.csvColumnValues}
+                        resetParams={this.resetParamsToDefaults}
 
-                    resetParams={this.resetParamsToDefaults}
+                        modelId={modelId}
+                        sessionId={sessionId}
 
-                    modelId={modelId}
-                    sessionId={sessionId}
+                        step={step}
+                        stepIdx={stepIdx}
+                        params={modelParams}
 
-                    step={step}
-                    stepIdx={stepIdx}
-                    params={modelParams}
-
-                    onChange={this.changeParamValue}
-                    onRunModel={this.runModel}
-                />
+                        updateDependentParams={this.updateDependentParams}
+                        onChange={this.changeParamValue}
+                        onRunModel={this.runModel}
+                    />
+                }
 
                 <CreateSessionDialog isOpen={this.state.isCreateSessionDialogOpen}
                     onClose={() => {this.setState({isCreateSessionDialogOpen: false})}}

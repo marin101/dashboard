@@ -120,29 +120,31 @@ function DropdownParam(props) {
 class DropdownEditParam extends React.Component {
     componentWillMount() {
         const {parameter, options, onChange} = this.props;
-        this.resetParameterValue(parameter, options, onChange);
+        const defaults = parameter.fieldDefaultValue;
+
+        if (options != null && parameter.value == null) {
+            onChange(this.getDefaultValue(options.length, defaults));
+        }
+
     }
 
     componentWillReceiveProps(nextProps) {
         const {parameter, options, onChange} = nextProps;
-        this.resetParameterValue(parameter, options, onChange);
-    }
+        const defaults = parameter.fieldDefaultValue;
 
-    resetParameterValue(param, options, onChange) {
-        if (options == null) return;
-
-        /* Initialize dropdown values */
-        if (param.value == null) {
-            const defaultVal = param.fieldDefaultValue;
-            onChange(this.getDefaultValue(options.length, defaultVal));
+        /* Detect data set change and reset paramter value */
+        if (options != this.props.options && options != null) {
+            if (parameter.defaultValue == null) {
+                onChange(this.getDefaultValue(options.length, defaults));
+            }
         }
     }
 
-    getDefaultValue(size, defaultValue) {
+    getDefaultValue(size, defaults) {
         const newValue = [];
 
         for (let i = 0; i < size; i++) {
-            newValue.push(defaultValue);
+            newValue.push(defaults[Math.min(i, defaults.length - 1)]);
         }
 
         return newValue;
@@ -152,13 +154,8 @@ class DropdownEditParam extends React.Component {
         const {name, description, fieldDefaultValue} = this.props.parameter;
         let {value=[]} = this.props.parameter;
 
-        /* Reset value to default if necessary */
-        if (this.props.options != null && value.length <= 0) {
-            value = this.getDefaultValue(this.props.options.length, fieldDefaultValue);
-        }
-
         let dropdownOptions = [];
-        if (this.props.options != null && value != null) {
+        if (this.props.options != null && value.length > 0) {
             dropdownOptions = this.props.options.map((item, idx) => ({
                 value: item,
                 text: item,
@@ -169,7 +166,6 @@ class DropdownEditParam extends React.Component {
                         onChange={(e, data) => {
                             const newValue = value.slice();
 
-                            console.log('kita', value)
                             newValue[idx] = data.value;
                             this.props.onChange(newValue);
                         }
@@ -226,115 +222,155 @@ function getMarks(min, max, step, unit, markCnt, dataSet) {
     return marks;
 }
 
-function SliderParam(props) {
-    const {name, unit='', choice, step, markCnt=0} = props.parameter;
-    let {value=0} = props.parameter;
-    const [min, max] = choice;
+class SliderParam extends React.Component {
+    componentWillMount() {
+        const {parameter, dataSet, onChange} = this.props;
 
-    /* Construct marks object */
-    const marks = getMarks(min, max, step, unit, markCnt, props.dataSet);
+        if (dataSet != null && parameter.value == null) {
+            onChange([0, dataSet.length - 1]);
+        }
+    }
 
-    const sliderStyle = {
-        "width": "auto",
-        "marginLeft": "1em",
-        "marginRight": "1em"
-    };
+    componentWillReceiveProps(nextProps) {
+        const {dataSet, parameter, onChange} = nextProps;
 
-    const displayValue = (props.dataSet == null) ? value : props.dataSet[value];
-
-    return (
-        <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
-            <Popup on="hover" content={props.parameter.description} trigger={
-                <label style={{"display": "inline"}}> {name} </label>
-            }/>
-
-            {!props.disabled &&
-                <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
-                    <strong> {displayValue + unit} </strong>
-                </div>
+        /* Detect data set change and reset paramter value */
+        if (dataSet != this.props.dataSet && dataSet != null) {
+            if (parameter.defaultValue == null) {
+                onChange([0, dataSet.length - 1]);
             }
+        }
+    }
 
-            <Slider min={min} max={max} step={step} marks={marks} value={value}
-                style={sliderStyle} disabled={props.disabled}
-                onChange={newValue => {
-                    /* Check if all values will be integers */
-                    const isInteger = Number.isInteger(min) && Number.isInteger(step);
+    render() {
+        const {name, value=0, unit='', choice, step, markCnt=0} = this.props.parameter;
+        const [min, max] = choice;
 
-                    // TODO: Remove if mark objects treated as dots bug is resolved
-                    // Marks should not be selectable if they do not fit the step
-                    newValue = min + Math.round((newValue - min) / step)*step;
-                    newValue = isInteger ? newValue : newValue.toFixed(2);
+        /* Construct marks object */
+        const marks = getMarks(min, max, step, unit, markCnt, this.props.dataSet);
 
-                    // TODO: Remove if bug [value > max] is resolved
-                    if (newValue <= max) props.onChange(newValue);
-                }}
-            />
-       </Form.Field>
-    );
+        const sliderStyle = {
+            "width": "auto",
+            "marginLeft": "1em",
+            "marginRight": "1em"
+        };
+
+        const displayValue = (this.props.dataSet == null) ? value : this.props.dataSet[value];
+
+        return (
+            <Form.Field style={(Object.keys(marks).length > 0) ? {"marginBottom": "2em"} : {}}>
+                <Popup on="hover" content={this.props.parameter.description} trigger={
+                    <label style={{"display": "inline"}}> {name} </label>
+                }/>
+
+                {!this.props.disabled &&
+                    <div style={{"display": "inline", "color": "#96dbfa", "marginLeft": "5px"}}>
+                        <strong> {displayValue + unit} </strong>
+                    </div>
+                }
+
+                <Slider min={min} max={max} step={step} marks={marks} value={value}
+                    style={sliderStyle} disabled={this.props.disabled}
+                    onChange={newValue => {
+                        /* Check if all values will be integers */
+                        const isInteger = Number.isInteger(min) && Number.isInteger(step);
+
+                        // TODO: Remove if mark objects treated as dots bug is resolved
+                        // Marks should not be selectable if they do not fit the step
+                        newValue = min + Math.round((newValue - min) / step)*step;
+                        newValue = isInteger ? newValue : newValue.toFixed(2);
+
+                        // TODO: Remove if bug [value > max] is resolved
+                        if (newValue <= max) this.props.onChange(newValue);
+                    }}
+                />
+           </Form.Field>
+        );
+    }
 }
 
-function RangeParam(props) {
-    const {name, choice, step=1, markCnt=0, unit=''} = props.parameter;
-    let {value=[0, 0]} = props.parameter;
+class RangeParam extends React.Component {
+    componentWillMount() {
+        const {parameter, dataSet, onChange} = this.props;
 
-    let [min, max] = [0, 0];
-    if (choice != null) {
-        [min, max] = choice;
-    } else if (props.dataSet != null) {
-        [min, max] = [0, props.dataSet.length - 1];
+        if (dataSet != null && parameter.value == null) {
+            onChange([0, dataSet.length - 1]);
+        }
     }
 
-    /* Construct marks object */
-    const marks = getMarks(min, max, step, unit, markCnt, props.dataSet);
+    componentWillReceiveProps(nextProps) {
+        const {dataSet, parameter, onChange} = nextProps;
 
-    let [lowValue, highValue] = value;
-    if (props.dataSet != null) {
-        lowValue  = props.dataSet[value[0]];
-        highValue = props.dataSet[value[1]];
-    }
-
-    const rangeStyle = {
-        "width": "auto",
-        "marginLeft": "1em",
-        "marginRight": "1em"
-    };
-
-    return (
-        <Form.Field style={(Object.keys(marks).length > 0) ? {marginBottom: "2em"} : {}}>
-            <Popup on="hover" content={props.parameter.description} trigger={
-                <label style={{display: "inline"}}> {name} </label>
-            }/>
-
-            {!props.disabled &&
-                <div style={{display: "inline", color: "#96dbfa", marginLeft: "5px"}}>
-                    <strong> {lowValue + unit} </strong>
-                    &hArr;
-                    <strong> {highValue + unit} </strong>
-                </div>
+        /* Detect data set change and reset paramter value */
+        if (dataSet != this.props.dataSet && dataSet != null) {
+            if (parameter.defaultValue == null) {
+                onChange([0, dataSet.length - 1]);
             }
+        }
+    }
 
-            <Range count={2} disabled={props.disabled} min={min} max={max} step={step}
-                dots={!props.disabled} marks={marks} value={value} allowCross={false}
-                style={rangeStyle} onChange={newValue => {
-                    /* Check if all values will be integers */
-                    const isInteger = Number.isInteger(min) && Number.isInteger(step);
+    render() {
+        const {name, value=[0, 0], choice, step=1, markCnt=0, unit=''} = this.props.parameter;
 
-                    // TODO: Remove if mark objects treated as dots bug is resolved
-                    // Marks should not be selectable if they do not fit the step
-                    newValue[0] = min + Math.round((newValue[0] - min) / step)*step;
-                    newValue[1] = min + Math.round((newValue[1] - min) / step)*step;
+        let [min, max] = [0, 0];
+        if (choice != null) {
+            [min, max] = choice;
+        } else if (this.props.dataSet != null) {
+            [min, max] = [0, this.props.dataSet.length - 1];
+        }
 
-                    newValue[0] = isInteger ? newValue[0] : newValue[0].toFixed(2);
-                    newValue[1] = isInteger ? newValue[1] : newValue[1].toFixed(2);
+        /* Construct marks object */
+        const marks = getMarks(min, max, step, unit, markCnt, this.props.dataSet);
 
-                    // TODO: Remove if bug [value > max] is resolved
-                    if (newValue[0] <= max && newValue[1] <= max) {
-                        props.onChange(newValue);
-                    }
-                }}
-            />
-        </Form.Field>
-    );
+        let [lowValue, highValue] = value;
+        if (this.props.dataSet != null) {
+            lowValue  = this.props.dataSet[value[0]];
+            highValue = this.props.dataSet[value[1]];
+        }
+
+        const rangeStyle = {
+            "width": "auto",
+            "marginLeft": "1em",
+            "marginRight": "1em"
+        };
+
+        return (
+            <Form.Field style={(Object.keys(marks).length > 0) ? {marginBottom: "2em"} : {}}>
+                <Popup on="hover" content={this.props.parameter.description} trigger={
+                    <label style={{display: "inline"}}> {name} </label>
+                }/>
+
+                {!this.props.disabled &&
+                    <div style={{display: "inline", color: "#96dbfa", marginLeft: "5px"}}>
+                        <strong> {lowValue + unit} </strong>
+                        &hArr;
+                        <strong> {highValue + unit} </strong>
+                    </div>
+                }
+
+                <Range count={2} disabled={this.props.disabled} min={min} max={max} step={step}
+                    dots={!this.props.disabled} marks={marks} value={value} allowCross={false}
+                    style={rangeStyle} onChange={newValue => {
+                        /* Check if all values will be integers */
+                        const isInteger = Number.isInteger(min) && Number.isInteger(step);
+
+                        // TODO: Remove if mark objects treated as dots bug is resolved
+                        // Marks should not be selectable if they do not fit the step
+                        newValue[0] = min + Math.round((newValue[0] - min) / step)*step;
+                        newValue[1] = min + Math.round((newValue[1] - min) / step)*step;
+
+                        newValue[0] = isInteger ? newValue[0] : newValue[0].toFixed(2);
+                        newValue[1] = isInteger ? newValue[1] : newValue[1].toFixed(2);
+
+                        // TODO: Remove if bug [value > max] is resolved
+                        if (newValue[0] <= max && newValue[1] <= max) {
+                            this.props.onChange(newValue);
+                        }
+                    }}
+                />
+            </Form.Field>
+        );
+    }
 }
 
 const itemSource = {
