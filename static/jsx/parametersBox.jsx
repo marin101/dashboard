@@ -332,7 +332,8 @@ class ParametersDialog extends React.Component {
         }
 
         return (
-            <Modal size="fullscreen" open={this.props.isOpen} onClose={this.props.onClose}>
+            <Modal size={pageLayout.size} open={this.props.isOpen} onClose={this.props.onClose}
+                closeOnDimmerClick={false} closeIcon>
                 <Modal.Header style={{display: "flex"}}>
                     <div style={{flex: 1}}> {step.name} </div>
 
@@ -360,13 +361,19 @@ class ParametersDialog extends React.Component {
                 </Modal.Content>
 
                 <Modal.Actions>
-                    <Button secondary content="Reset" onClick={this.resetParams}/>
-                    <Button negative disabled={page <= 0} onClick={this.goToPrevPage}>
-                        Back
-                    </Button>
-                    <Button positive onClick={this.goToNextPage}>
-                        {(page < step.layout.length - 1) ? "Next" : "Run"}
-                    </Button>
+                    <Grid columns="equal">
+                        <Grid.Column floated="left" textAlign="left">
+                            <Button secondary content="Reset" onClick={this.resetParams}/>
+                        </Grid.Column>
+                        <Grid.Column floated="right" textAlign="right">
+                            <Button negative disabled={page <= 0} onClick={this.goToPrevPage}>
+                                Back
+                            </Button>
+                            <Button positive onClick={this.goToNextPage}>
+                                {(page < step.layout.length - 1) ? "Next" : "Run"}
+                            </Button>
+                        </Grid.Column>
+                    </Grid>
                 </Modal.Actions>
             </Modal>
         );

@@ -17,6 +17,8 @@
             layout: [
                 # Page 0
                 {
+                    # default size: large
+
                     # Header parameters
                     header: [file1],        # Aligned to right by default
 
@@ -36,6 +38,8 @@
 
                 # Page 1
                 {
+                    size: "small",
+
                     body: [
                         [pbounds, datefmt, impute],
                         [outlier, static]
@@ -52,6 +56,7 @@
 
             layout: [
                 {
+                    size: "small",
                     body: [use_decay, decay_bounds, use_log, use_mc]
                 }
             ]
@@ -69,6 +74,7 @@
 
             layout: [
                 {
+                    size: "fullscreen",
                     body: [
                         [use_geobrand, use_seas, lst_seas, lst_rand, covstr, use_stat],
                         [use_prior, lst_prior, mixnmatch, drop_period, drop_subject],
