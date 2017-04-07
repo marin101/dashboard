@@ -21,8 +21,11 @@ import logging
 
 import subprocess
 
-MODELS_DIRECTORY = os.path.join('.', "models")
-USERS_DIRECTORY = os.path.join('.', "static", "users")
+# This file has to be in the root of the server file structure
+SERVER_DIRECTORY = os.path.abspath('')
+
+MODELS_DIRECTORY = os.path.join(SERVER_DIRECTORY, "models")
+USERS_DIRECTORY = os.path.join(SERVER_DIRECTORY, "static", "users")
 DATABASE_PATH = os.path.join(USERS_DIRECTORY, "users.db")
 
 IP_ADDRESS = "0.0.0.0"
