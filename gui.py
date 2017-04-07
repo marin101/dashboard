@@ -371,7 +371,7 @@ if __name__ == "__main__":
     except OSError:
         pass
 
-    app.run(debug = True, threaded = True)
+    app.run(debug=True, threaded=True, host="0.0.0.0", port=5500)
 
     HTTPServer = WSGIServer((IP_ADDRESS, PORT), app)
     HTTPServer.serve_forever()
