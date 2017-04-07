@@ -300,6 +300,7 @@ def run_model():
     model_call = ["Rscript", model_script, temp_dir, str(stepIdx)]
     model_call.extend(map(lambda x: str(x), runParams))
 
+    print model_call
     result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
 
     # Store current state of the model
@@ -347,17 +348,24 @@ def fetch_csv_column():
     filename = request.form["filename"]
     fieldnames = json.loads(request.form["fieldnames"])
 
-    column_values = {}
+    columns = {}
     with open(os.path.join(temp_dir, filename)) as f:
         for row in csv.DictReader(f):
-            for fieldname, unique in fieldnames.iteritems():
+            for fieldname, options in fieldnames.iteritems():
                 value = row[fieldname]
 
-                # TODO: Optimize
-                if not unique or value not in column_values.setdefault(fieldname, []):
-                    column_values.setdefault(fieldname, []).append(value)
+                column_values = columns.setdefault(fieldname, set())
+                if not options["unique"] or value not in column_values:
+                    column_values.add(value)
 
-    return json.dumps(column_values)
+    # Change set to list and sort it
+    for fieldname, values in columns.iteritems():
+        if fieldnames[fieldname]["sorted"]:
+            columns[fieldname] = sorted(values)
+        else:
+            columns[fieldname] = list(values)
+
+    return json.dumps(columns)
 
 @app.route("/download_csv_output/", methods=["POST"])
 def download_csv_output():

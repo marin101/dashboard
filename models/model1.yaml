@@ -169,7 +169,7 @@
             description: "Periods within this range will be included in the model",
 
             # Read unique CSV columns defined by the period from file1
-            source: {id: period, action: "readCSV", file: "file1", unique: true},
+            source: {id: period, action: "readCSV", file: "file1", unique: true, sorted: true},
 
             # Number of marks on the range slider
             # At most 3 marks will be shown

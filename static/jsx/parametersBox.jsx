@@ -690,6 +690,7 @@ class ParametersBox extends React.Component {
 
             if (param.source != null && param.source.action == "readCSV") {
                 const uniqueOnly = param.source.unique == true;
+                const isSorted = param.source.sorted == true;
 
                 const csvColumnsToFetch = modelParams[param.source.id].value;
                 const filename = modelParams[param.source.file].value;
@@ -704,7 +705,7 @@ class ParametersBox extends React.Component {
 
                     csvColumnsToFetch.map(val => {
                         if (!this.state.csvColumnValues.hasOwnProperty(val)) {
-                            fieldnames[val] = uniqueOnly;
+                            fieldnames[val] = {unique: uniqueOnly, sorted: isSorted};
                         }
                     });
                 }
