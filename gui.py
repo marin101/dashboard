@@ -285,8 +285,14 @@ def run_model():
     model = request.form["model"]
     session = request.form["session"]
     stepIdx = request.form["stepIdx"]
-    runParams = json.loads(request.form["runParamValues"])
     allParams = json.loads(request.form["allParamValues"])
+    runParams = json.loads(request.form["runParamValues"])
+
+    for i, param in enumerate(runParams):
+        runParams[i] = str(param)
+
+        if runParams[i] == '':
+            runParams[i] = "NA"
 
     # Destination directory for specific user
     model_dir = os.path.join(get_user_dirpath(username), model)
@@ -296,9 +302,9 @@ def run_model():
     # Path to the model R script
     model_script = os.path.join(MODELS_DIRECTORY, model  + ".R")
 
+    print runParams
     # Run model as a separate subprocess with given parameters
-    model_call = ["Rscript", model_script, temp_dir, str(stepIdx)]
-    model_call.extend(map(lambda x: str(x), runParams))
+    model_call = ["Rscript", model_script, temp_dir, str(stepIdx)] + runParams
 
     subprocess.Popen(model_call, stdout=subprocess.PIPE)
 
