@@ -300,8 +300,10 @@ def run_model():
     model_call = ["Rscript", model_script, temp_dir, str(stepIdx)]
     model_call.extend(map(lambda x: str(x), runParams))
 
-    print model_call
-    result = subprocess.Popen(model_call, stdout=subprocess.PIPE)
+    subprocess.Popen(model_call, stdout=subprocess.PIPE)
+
+    with open(os.path.join(temp_dir, "output.log")) as output_log:
+        result = output_log.readlines()
 
     # Store current state of the model
     with open(os.path.join(temp_dir, "metadata"), 'w') as metadata:
@@ -310,7 +312,7 @@ def run_model():
     # TODO:
     plots = get_plots(temp_dir, request.form["stepId"])
 
-    return json.dumps({"consoleOutput": result.stdout.readlines(), "plots": plots});
+    return json.dumps({"consoleOutput": result, "plots": plots});
 
 @app.route("/upload_csv_file/", methods=["POST"])
 def upload_csv_file():
