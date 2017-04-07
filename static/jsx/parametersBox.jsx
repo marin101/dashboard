@@ -794,7 +794,7 @@ class ParametersBox extends React.Component {
         const modelId = data.value;
         const model = this.state.modelsInfo[modelId];
 
-        this.setState({
+        this.setState(state => {
             const modelParams = {};
 
             for (let paramId in model.parameters) {
@@ -1003,6 +1003,7 @@ class ParametersBox extends React.Component {
     }
 
 	render() {
+        console.log('ki')
         const {modelsInfo, modelId, sessionId, stepIdx, modelParams} = this.state;
 
         const model = modelsInfo[modelId];
