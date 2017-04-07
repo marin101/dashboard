@@ -380,7 +380,7 @@
         drop_subject: {
             type: "dropdown",
             name: "Drop Subjects",
-            description: "These subjects will be excluded from the model (provide a comma-separated list)",
+            description: "These subjects will be excluded from the model",
 
             source: {id: subject, action: "readCSV", file: "file1", unique: true}
         },

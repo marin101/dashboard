@@ -4,6 +4,18 @@ import Slider, {Range} from "rc-slider";
 import {DragSource, DropTarget} from "react-dnd";
 import {Segment, Header, Form, Popup, Input, Button, Checkbox, Radio, Dropdown} from "semantic-ui-react";
 
+function paramShallowCompare(nextProps, currProps) {
+    for (let prop in nextProps) {
+        if (prop == "onChange") continue;
+
+        if (nextProps[prop] != currProps[prop]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function FileInputParam(props) {
     const {name, description, value=''} = props.parameter;
 
@@ -93,28 +105,34 @@ function RadioParam(props) {
     );
 }
 
-function DropdownParam(props) {
-    const {name, description, value=[]} = props.parameter;
-
-    let dropdownOptions = [];
-    if (props.options != null) {
-        dropdownOptions = props.options.map((item, idx) => ({
-            value: item, text: item, key: idx
-        }));
+class DropdownParam extends React.Component {
+    shouldComponentUpdate(nextProps) {
+        return paramShallowCompare(nextProps, this.props);
     }
 
-    return (
-        <Form.Field error={props.isError}>
-            <Popup on="hover" content={description} trigger={
-                <label> {name} </label>
-            }/>
+    render() {
+        const {name, description, value=[]} = this.props.parameter;
 
-            <Dropdown fluid search selection multiple value={value}
-                placeholder={description} options={dropdownOptions}
-                onChange={(e, data) => {props.onChange(data.value)}}
-            />
-        </Form.Field>
-    );
+        let dropdownOptions = [];
+        if (this.props.options != null) {
+            dropdownOptions = this.props.options.map((item, idx) => ({
+                value: item, text: item, key: idx
+            }));
+        }
+
+        return (
+            <Form.Field error={this.props.isError}>
+                <Popup on="hover" content={description} trigger={
+                    <label> {name} </label>
+                }/>
+
+                <Dropdown fluid search selection multiple value={value}
+                    placeholder={description} options={dropdownOptions}
+                    onChange={(e, data) => {this.props.onChange(data.value)}}
+                />
+            </Form.Field>
+        );
+    }
 }
 
 class DropdownEditParam extends React.Component {
@@ -138,6 +156,10 @@ class DropdownEditParam extends React.Component {
                 onChange(this.getDefaultValue(options.length, defaults));
             }
         }
+    }
+
+    shouldComponentUpdate(nextProps) {
+        return paramShallowCompare(nextProps, this.props);
     }
 
     getDefaultValue(size, defaults) {
@@ -242,6 +264,10 @@ class SliderParam extends React.Component {
         }
     }
 
+    shouldComponentUpdate(nextProps) {
+        return paramShallowCompare(nextProps, this.props);
+    }
+
     render() {
         const {name, value=0, unit='', choice, step, markCnt=0} = this.props.parameter;
         const [min, max] = choice;
@@ -307,6 +333,10 @@ class RangeParam extends React.Component {
                 onChange([0, dataSet.length - 1]);
             }
         }
+    }
+
+    shouldComponentUpdate(nextProps) {
+        return paramShallowCompare(nextProps, this.props);
     }
 
     render() {
