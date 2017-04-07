@@ -1,12 +1,13 @@
 #!/bin/bash
 
-pip2 install Flask Flask-HTTPAuth gevent || pip install Flask Flask-HTTPAuth gevent
+sudo apt-get update
+sudo apt-get install pip
+sudo pip install --upgrade pip
+sudo pip install Flask Flask-HTTPAuth gevent pyyaml
 
-sudo apt-get update && sudo apt-get install yarn
+#TODO Install yarn and nodejs
+sudo apt-get install yarn
 
-yarn install && yarn upgrade && yarn build
+yarn install && yarn build
 
-echo Server started on port 5500
-./gui.py &
-
-
+echo Installation done

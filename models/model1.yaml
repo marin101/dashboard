@@ -101,8 +101,6 @@
             description: "Upload input data in CSV format",
 
             target: "ind_vars",
-
-            returnValue: "userData.csv"
         },
 
         ind_vars: {

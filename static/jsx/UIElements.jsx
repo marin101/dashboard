@@ -80,7 +80,7 @@ function RadioParam(props) {
                 <label> {name} </label>
             }/>
 
-            <Form.Group>
+            <Form.Group widths="equal">
                 {props.parameter.choice.map((choice, idx) =>
                     <Form.Field key={idx}>
                         <Radio label={choice} name={props.parameterId} checked={value == idx}

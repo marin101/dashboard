@@ -48,6 +48,11 @@ function Param(props) {
 function PageParams(props) {
     const {params, paramIds, isGridRow=false} = props;
 
+    const rowStyle = {
+        paddingTop: "0.5rem",
+        paddingBottom: "0.5rem"
+    };
+
     if (Array.isArray(paramIds)) {
         const childParams = paramIds.map((childParamIds, idx) =>
             <PageParams key={idx} params={params} paramIds={childParamIds}
@@ -58,8 +63,8 @@ function PageParams(props) {
             />
         );
 
-        if (props.isGridRow) {
-            return <Grid.Row> {childParams} </Grid.Row>;
+        if (isGridRow) {
+            return <Grid.Row style={rowStyle}> {childParams} </Grid.Row>;
         }
 
         return <Grid.Column> {childParams} </Grid.Column>;
@@ -95,8 +100,8 @@ function PageParams(props) {
         />
     );
 
-    if (props.isGridRow) {
-        return <Grid.Row> {paramElem} </Grid.Row>;
+    if (isGridRow) {
+        return <Grid.Row style={rowStyle}> {paramElem} </Grid.Row>;
     }
 
     return <Grid.Column> {paramElem} </Grid.Column>;
@@ -746,60 +751,63 @@ class ParametersBox extends React.Component {
 	}
 
 	changeParamValue(paramId, newValue) {
-        /* Deep copy the changed parameter */
-		const newParams = Object.assign({}, this.state.modelParams);
-        newParams[paramId] = Object.assign({}, newParams[paramId]);
+        /* Nedds to be concurrent */
+        this.setState(state => {
+            /* Deep copy the changed parameter */
+            const newParams = Object.assign({}, state.modelParams);
+            newParams[paramId] = Object.assign({}, newParams[paramId]);
 
-        newParams[paramId].value = newValue;
+            newParams[paramId].value = newValue;
 
-        /* Check if param is used as a source param */
-        if (this.sourceParams.hasOwnProperty(paramId)) {
-            const srcParam = this.sourceParams[paramId];
+            /* Check if param is used as a source param */
+            if (this.sourceParams.hasOwnProperty(paramId)) {
+                const srcParam = this.sourceParams[paramId];
 
-            if (srcParam.action == "readCSV") {
-                const newCsvColumnValues = Object.assign({}, this.state.csvColumnValues);
+                if (srcParam.action == "readCSV") {
+                    const newCsvColumnValues = Object.assign({}, state.csvColumnValues);
 
-                /* Remove CSV columns which are outdated */
-                if (Array.isArray(newValue)) {
-                    newValue.forEach(value => {
-                        delete newCsvColumnValues[value];
-                    });
+                    /* Remove CSV columns which are outdated */
+                    if (Array.isArray(newValue)) {
+                        newValue.forEach(value => {
+                            delete newCsvColumnValues[value];
+                        });
+                    } else {
+                        delete newCsvColumnValues[newValue];
+                    }
+
+                    this.setState({csvColumnValues: newCsvColumnValues});
                 } else {
-                    delete newCsvColumnValues[newValue];
+                    /* Reset all parameters which use this as source */
+                    const targetParams = srcParam.targetIds.map(targetId =>
+                        Object.assign({}, newParams[targetId])
+                    );
+
+                    this.resetParamsToDefaults(targetParams);
                 }
-
-                this.setState({csvColumnValues: newCsvColumnValues});
-            } else {
-                /* Reset all parameters which use this as source */
-                const targetParams = srcParam.targetIds.map(targetId =>
-                    Object.assign({}, newParams[targetId])
-                );
-
-                this.resetParamsToDefaults(targetParams);
             }
-        }
 
-        this.setState({modelParams: newParams});
+            return {modelParams: newParams};
+        });
 	}
 
     selectModel(event, data) {
         const modelId = data.value;
         const model = this.state.modelsInfo[modelId];
 
-        // TODO: Spare us of the deep copy
-        const modelParams = {};
-        for (let key in model.parameters) {
-            const param = model.parameters[key];
-            modelParams[key] = Object.assign({}, param);
-        }
-
-        this.resetParamsToDefaults(modelParams);
-
         this.setState({
-            modelId: modelId,
-            modelParams: modelParams
+            const modelParams = {};
+
+            for (let paramId in model.parameters) {
+                const param = model.parameters[paramId];
+                modelParams[paramId] = Object.assign({}, param);
+            }
+
+            this.resetParamsToDefaults(modelParams);
+
+            return {modelParams: modelParams};
         });
 
+        this.setState({modelId: modelId});
         this.props.onModelChange(modelId);
 
         /* Reset source parameters list */
