@@ -3,7 +3,7 @@ import ReactDOM from "react-dom";
 
 import {Grid, Header, Dropdown} from "semantic-ui-react";
 
-class ModelOutputBox extends React.Component {
+class ModelOutputBox extends React.PureComponent {
     constructor() {
         super();
 
@@ -31,16 +31,14 @@ class ModelOutputBox extends React.Component {
         };
 
         let plotName, plotPath;
-        if (this.state.plotIdx) {
+        if (this.state.plotIdx != null) {
             plotName = this.props.plotList[this.state.plotIdx].name;
             plotPath = this.props.plotList[this.state.plotIdx].path
         }
 
-        const plotOptions = this.props.plotList.map((plotName, idx) => ({
-            key: idx, text: plotName.name, value: idx
+        const plotOptions = this.props.plotList.map((plot, idx) => ({
+            key: idx, text: plot.name, value: idx
         }));
-
-        console.log(plotName, plotPath)
 
 		return (
 			<div style={{width: "100%"}}>

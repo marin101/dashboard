@@ -145,7 +145,7 @@ def get_plots(dirname, stepId=None):
     for plot in plots:
         plotsMetadata.append({
             "name": os.path.relpath(plot, dirname),
-            "path": plot
+            "path": os.path.relpath(plot, SERVER_DIRECTORY)
         })
 
     return plotsMetadata
@@ -288,6 +288,7 @@ def run_model():
     allParams = json.loads(request.form["allParamValues"])
     runParams = json.loads(request.form["runParamValues"])
 
+    # /p
     for i, param in enumerate(runParams):
         runParams[i] = str(param)
 
@@ -302,7 +303,6 @@ def run_model():
     # Path to the model R script
     model_script = os.path.join(MODELS_DIRECTORY, model  + ".R")
 
-    print runParams
     # Run model as a separate subprocess with given parameters
     model_call = ["Rscript", model_script, temp_dir, str(stepIdx)] + runParams
 
