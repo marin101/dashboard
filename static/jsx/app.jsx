@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import SplitPane from 'react-split-pane';
-import {Sidebar, Menu, Image} from "semantic-ui-react";
+import {Grid, Menu, Image} from "semantic-ui-react";
 
 import ParametersBox from "./parametersBox.jsx";
 import ModelOutputBox from "./modelOutputBox.jsx";
@@ -21,6 +21,7 @@ class Application extends React.Component {
             modelId: null,
             sessionId: null,
 
+            view: 0,
             plotList: [],
             consoleOutput: []
         };
@@ -58,10 +59,13 @@ class Application extends React.Component {
         this.setState({modelId: modelId});
     }
 
+    setView(view) {
+        this.setState({view: view});
+    }
+
 	render() {
         const {username, modelId, sessionId, plotList} = this.state;
 
-        console.log(username, modelId, sessionId, plotList);
         const applicationStyle = {
             flexDirection: "column",
             display: "flex",
@@ -78,6 +82,10 @@ class Application extends React.Component {
             width: "13em"
         };
 
+        const gridColumnStyle = {
+            padding: 0
+        };
+
 		return (
             <div style={applicationStyle}>
 				<Menu size="large" style={{margin: 0, borderWidth: "0 0 1px 0"}}>
@@ -86,24 +94,26 @@ class Application extends React.Component {
                     </Menu.Item>
 				</Menu>
 
-                <Sidebar.Pushable>
-                    <Sidebar visible={true}>
+                <Grid stackable divided columns={2} style={{flex: 1, margin: 0}}>
+                    <Grid.Column width={3} style={gridColumnStyle}>
                         <ParametersBox sessionId={sessionId}
                             onUsernameChange={this.storeUsername}
                             onModelOutputChange={this.storeModelOutput}
                             onSessionChange={this.storeSessionId}
                             onModelChange={this.storeModelId}
-                            onPlotsFetch={this.storePlots}/>
-                    </Sidebar>
+                            onPlotsFetch={this.storePlots}
+                            onViewChange={this.setView}/>
+                    </Grid.Column>
 
-                    <Sidebar.Pusher>
-                        <SplitPane split="horizontal" size={"70%"}>
+                    <Grid.Column width={13} style={gridColumnStyle}>
+                        {(this.state.view == 0) ?
                             <ModelOutputBox username={username} modelId={modelId}
                                 sessionId={sessionId} plotList={plotList}/>
+                        :
                             <ConsoleOutputBox output={this.state.consoleOutput}/>
-                        </SplitPane>
-                    </Sidebar.Pusher>
-                </Sidebar.Pushable>
+                        }
+                    </Grid.Column>
+                </Grid>
             </div>
 		);
 	}

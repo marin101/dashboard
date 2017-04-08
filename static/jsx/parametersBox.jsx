@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import {Grid, Header, Message, Dropdown, Icon, Button, Popup, Form, Menu, Input, Modal} from "semantic-ui-react";
+import {Grid, Header, Message, Dropdown, Icon, Button, Popup, Form, Menu, Step, Input, Modal} from "semantic-ui-react";
 import {DropdownEditParam, TextParam, CheckboxParam, RadioParam} from "./UIElements.jsx";
 import {DropdownParam, SliderParam, RangeParam, DragDropParam} from "./UIElements.jsx";
 import {FileInputParam} from "./UIElements.jsx";
@@ -1011,7 +1011,6 @@ class ParametersBox extends React.Component {
     }
 
 	render() {
-        console.log('ki')
         const {modelsInfo, modelId, sessionId, stepIdx, modelParams} = this.state;
 
         const model = modelsInfo[modelId];
@@ -1029,18 +1028,38 @@ class ParametersBox extends React.Component {
             key: idx
         }));
 
+        let steps = [];
+        if (model != null) {
+            steps = model.steps.map((step, idx) => ({
+                title: step.name,
+                description: step.description,
+                index: idx,
+
+                disabled: idx > stepIdx || sessionId == null,
+                completed: idx < stepIdx,
+                active: stepIdx === idx,
+
+                onClick: this.openParamsDialog
+            }));
+        }
+
 		return (
 			<div>
                 <Form size="mini">
-                    <Menu fluid>
+                    <Menu>
                         <Menu.Item name="New session" disabled={modelId == null}
-                            onClick={this.openNewSessionDialog}/>
+                            onClick={this.openNewSessionDialog}>
+                            <Icon name="add" circular color="green"/>
+                        </Menu.Item>
 
                         <Menu.Item name="Save session" disabled={sessionId == null}
-                            onClick={this.saveSession}/>
+                            onClick={this.saveSession}>
+                            <Icon name="save" circular/>
+                        </Menu.Item>
 
                         <Menu.Item name="Delete session" disabled={sessionId == null}
                             onClick={this.deleteSession}>
+                            <Icon name="remove" circular color="red"/>
                         </Menu.Item>
                     </Menu>
 
@@ -1054,27 +1073,20 @@ class ParametersBox extends React.Component {
                         </Menu.Item>
 
                         <Menu.Item>
-                            <Dropdown selection scrolling placeholder="Select model"
-                                options={modelDropdownChoice}
-                                onChange={this.selectModel}/>
+                            <Dropdown fluid selection scrolling placeholder="Select model"
+                                options={modelDropdownChoice} onChange={this.selectModel}/>
 
-                            <Dropdown selection scrolling placeholder="Select session"
+                            <Dropdown fluid selection scrolling placeholder="Select session"
                                 value={(sessionId != null) ? sessionId : ''}
                                 options={sessionDropdownChoice}
                                 onChange={this.selectSession}
                                 disabled={model == null}/>
                         </Menu.Item>
+                    </Menu>
 
                         {/*TODO: Add space*/}
-                        <Menu.Item/>
 
-                        {model != null && model.steps.map((step, idx) =>
-                            <Menu.Item name={idx+1 + ". " + step.name} key={idx} index={idx}
-                                active={stepIdx === idx}
-                                disabled={idx > stepIdx || sessionId == null}
-                                onClick={this.openParamsDialog}/>
-                        )}
-                    </Menu>
+                    <Step.Group fluid vertical ordered size="small" items={steps}/>
                 </Form>
 
                 {!this.sessionLoading &&

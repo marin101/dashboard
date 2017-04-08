@@ -165,10 +165,12 @@ def load_session():
     try:
         with open(os.path.join(save_dir, "metadata"), 'r') as metadata:
             session_metadata = json.load(metadata)
+            stepId = session_metadata["stepId"]
 
         # There can be no plots if metadata is missing
-        session_metadata["plots"] = get_plots(save_dir)
-    except IOError:
+        session_metadata["plots"] = get_plots(save_dir, stepId)
+    except IOError as e:
+        print e
         pass
 
     return json.dumps(session_metadata)
@@ -284,7 +286,10 @@ def run_model():
     # Current model progress
     model = request.form["model"]
     session = request.form["session"]
+
+    stepId = request.form["stepId"]
     stepIdx = request.form["stepIdx"]
+
     allParams = json.loads(request.form["allParamValues"])
     runParams = json.loads(request.form["runParamValues"])
 
@@ -313,10 +318,15 @@ def run_model():
 
     # Store current state of the model
     with open(os.path.join(temp_dir, "metadata"), 'w') as metadata:
-        json.dump({"stepIdx": stepIdx, "paramValues": allParams}, metadata)
+        json.dump({
+            "stepId": stepId,
+            "stepIdx": stepIdx,
+
+            "paramValues": allParams
+        }, metadata)
 
     # TODO:
-    plots = get_plots(temp_dir, request.form["stepId"])
+    plots = get_plots(temp_dir, stepId)
 
     return json.dumps({"consoleOutput": result, "plots": plots});
 
