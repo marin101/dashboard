@@ -313,7 +313,8 @@ def run_model():
     # Run model as a separate subprocess with given parameters
     model_call = ["Rscript", model_script, temp_dir, str(stepIdx)] + runParams
 
-    subprocess.Popen(model_call, stdout=subprocess.PIPE)
+    with open(os.devnull, 'w') as devnull:
+        retval = subprocess.call(model_call, stdout=devnull)
 
     with open(os.path.join(temp_dir, "output.log")) as output_log:
         result = output_log.readlines()
