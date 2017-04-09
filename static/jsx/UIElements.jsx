@@ -526,25 +526,25 @@ function DragDropParam(props) {
     // TODO: Fix loading
     if (capacity == 1) {
         return (
-            <Grid columns="equal" celled style={{margin: 0}}>
-                <Grid.Column textAlign="left">
-                    <DragDropTarget containerId={props.parameterId}
-                        parameter={props.parameter} onChange={props.onChange}>
+            <DragDropTarget containerId={props.parameterId}
+                parameter={props.parameter} onChange={props.onChange}>
+                <Grid columns="equal" celled style={{margin: 0}}>
+                    <Grid.Column textAlign="left">
                         <DragDropSource containerId={props.parameterId}
                             item={value[0]} onChange={onDragSrcChange}/>
-                    </DragDropTarget>
+                    </Grid.Column>
 
-                </Grid.Column>
-                <Grid.Column textAlign="center">
-                    &rArr;
-                </Grid.Column>
+                    <Grid.Column textAlign="center">
+                        &rArr;
+                    </Grid.Column>
 
-                <Grid.Column textAlign="center">
-                    <Popup on="hover" content={description} trigger={
-                        <div> {name} </div>
-                    }/>
-                </Grid.Column>
-            </Grid>
+                    <Grid.Column textAlign="center">
+                        <Popup on="hover" content={description} trigger={
+                            <div> {name} </div>
+                        }/>
+                    </Grid.Column>
+                </Grid>
+            </DragDropTarget>
         );
     }
 
