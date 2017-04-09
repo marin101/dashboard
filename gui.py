@@ -172,7 +172,6 @@ def load_session():
         # There can be no plots if metadata is missing
         session_metadata["plots"] = get_plots(save_dir, stepId)
     except IOError as e:
-        print e
         pass
 
     return json.dumps(session_metadata)
@@ -316,7 +315,7 @@ def run_model():
     with open(os.devnull, 'w') as devnull:
         retval = subprocess.call(model_call, stdout=devnull)
 
-    with open(os.path.join(temp_dir, "output.log")) as output_log:
+    with open(os.path.join(temp_dir, "output.log"), 'r') as output_log:
         result = output_log.readlines()
 
     # Store current state of the model

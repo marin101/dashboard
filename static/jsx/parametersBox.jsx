@@ -888,8 +888,6 @@ class ParametersBox extends React.Component {
     }
 
     selectSession(sessionId) {
-        this.props.onSessionChange(sessionId);
-
         this.setState({sessionId: sessionId, stepIdx: 0});
 
         this.loadSession(this.state.modelId, sessionId);
@@ -938,7 +936,6 @@ class ParametersBox extends React.Component {
                     this.setState({stepIdx: sessionMetadata.stepIdx});
 
                     /* Restore plots list for this session*/
-                    this.props.onPlotChange(null);
                     this.props.onPlotsFetch(sessionMetadata.plots);
                 } else {
                     /* Reset step index and parameters to defaults */
@@ -946,6 +943,8 @@ class ParametersBox extends React.Component {
                     this.setState({stepIdx: 0});
                 }
 
+                this.props.onPlotChange(null);
+                this.props.onSessionChange(sessionId);
                 this.setState({modelParams: newParams});
                 this.updateDependentParams(Object.keys(newParams));
 
