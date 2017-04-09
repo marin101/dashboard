@@ -383,6 +383,18 @@ class ParametersDialog extends React.Component {
 
 const DragDropContainer = DragDropContext(HTML5Backend)(ParametersDialog);
 
+function SessionSavedDialog(props) {
+    return (
+        <Modal open={props.isOpen} onClose={props.onClose}>
+            <Modal.Header> Session saved </Modal.Header>
+
+            <Modal.Actions>
+                <Button primary onClick={props.onClose}> Confirm </Button>
+            </Modal.Actions>
+        </Modal>
+    );
+}
+
 class CreateSessionDialog extends React.Component {
     constructor() {
         super();
@@ -961,7 +973,7 @@ class ParametersBox extends React.Component {
             const saveSessionRequest= new XMLHttpRequest();
 
             saveSessionRequest.addEventListener("load", request => {
-                // TODO: Do something
+                this.setState({sessionSaved: true});
             });
 
             saveSessionRequest.addEventListener("error", request => {
@@ -1170,6 +1182,10 @@ class ParametersBox extends React.Component {
                     onCreateSession={this.addSession}
                     sessions={this.state.sessions}
                     modelId={this.state.modelId}
+                />
+
+                <SessionSavedDialog isOpen={this.state.sessionSaved}
+                    onClose={() => {this.setState({sessionSaved: false})}}
                 />
 		    </div>
 		);
