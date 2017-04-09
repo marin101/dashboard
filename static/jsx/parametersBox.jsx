@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import {Grid, Header, Message, Dropdown, Icon, Button, Popup, Form, Menu, Step, Input, Modal} from "semantic-ui-react";
+import {Grid, Accordion, Dropdown, List, Message, Icon, Button, Popup, Form, Menu, Step, Input, Modal} from "semantic-ui-react";
 import {DropdownEditParam, TextParam, CheckboxParam, RadioParam} from "./UIElements.jsx";
 import {DropdownParam, SliderParam, RangeParam, DragDropParam} from "./UIElements.jsx";
 import {FileInputParam} from "./UIElements.jsx";
@@ -262,8 +262,6 @@ class ParametersDialog extends React.Component {
                 return param.value;
             }
         }));
-
-        this.props.onClose();
     }
 
     validateParams() {
@@ -334,16 +332,19 @@ class ParametersDialog extends React.Component {
         return (
             <Modal size={pageLayout.size} open={this.props.isOpen} onClose={this.props.onClose}
                 closeOnDimmerClick={false} closeIcon>
-                <Modal.Header style={{display: "flex"}}>
-                    <div style={{flex: 1}}> {step.name} </div>
+                <Modal.Header>
+                    <Grid columns="equal">
+                        <Grid.Column floated="left" textAlign="left">
+                            <div style={{flex: 1}}> {step.name} </div>
+                        </Grid.Column>
 
-                    <Grid style={{flex: 1}}>
-                        {pageHeaderParams.map((paramId, idx) =>
-                            <Grid.Column key={idx}>
-                                <FileInputParam parameter={params[paramId]}
+                        <Grid.Column floated="right" textAlign="right"
+                            style={{marginRight: "10px"}}>
+                            {pageHeaderParams.map((paramId, idx) =>
+                                <FileInputParam parameter={params[paramId]} key={idx}
                                     onChange={this.uploadCsvFile.bind(this, paramId)}/>
-                            </Grid.Column>
-                        )}
+                            )}
+                        </Grid.Column>
                     </Grid>
                 </Modal.Header>
 
@@ -514,6 +515,7 @@ class ParametersBox extends React.Component {
 
             /* Controls whether parameters dialog should be open */
             isParamsDialogOpen: false,
+            openStepIdx: null,
 
             isCreateSessionDialogOpen: false,
 
@@ -724,13 +726,17 @@ class ParametersBox extends React.Component {
 
 		runModelRequest.addEventListener("load", request => {
             const {consoleOutput, plots} = JSON.parse(request.target.response);
+
+            this.props.onPlotChange(null);
             this.props.onModelOutputChange(consoleOutput, plots);
 
             const model = this.state.modelsInfo[this.state.modelId];
 
-            if (this.state.stepIdx + 1 < model.steps.length) {
-                this.setState({stepIdx: this.state.stepIdx + 1});
+            if (this.state.openStepIdx < model.steps.length) {
+                this.setState({stepIdx: this.state.openStepIdx + 1});
             }
+
+            this.setState({openStepIdx: null});
 		});
 
 		runModelRequest.addEventListener("error", request => {
@@ -749,7 +755,7 @@ class ParametersBox extends React.Component {
         modelForm.set("session", this.state.sessionId);
 
         modelForm.set("stepId", currStep.id);
-        modelForm.set("stepIdx", this.state.stepIdx + 1);
+        modelForm.set("stepIdx", this.state.openStepIdx + 1);
 
         modelForm.set("runParamValues", JSON.stringify(runParamValues));
         modelForm.set("allParamValues", JSON.stringify(allParamValues));
@@ -798,8 +804,7 @@ class ParametersBox extends React.Component {
         });
 	}
 
-    selectModel(event, data) {
-        const modelId = data.value;
+    selectModel(modelId) {
         const model = this.state.modelsInfo[modelId];
 
         this.setState(state => {
@@ -816,7 +821,7 @@ class ParametersBox extends React.Component {
         });
 
         this.setState({modelId: modelId});
-        this.props.onModelChange(modelId);
+        this.props.onModelChange(model.name);
 
         /* Reset source parameters list */
         this.sourceParams = {};
@@ -839,13 +844,11 @@ class ParametersBox extends React.Component {
         this.fetchSessions(modelId);
     }
 
-    openParamsDialog(event, data) {
-        if (!data.disabled) {
-            this.setState({
-                stepIdx: data.index,
-                isParamsDialogOpen: true
-            });
-        }
+    openParamsDialog(stepIdx) {
+        this.setState({
+            openStepIdx: stepIdx,
+            isParamsDialogOpen: true
+        });
     }
 
     openNewSessionDialog(e, data) {
@@ -872,10 +875,9 @@ class ParametersBox extends React.Component {
         fetchSessionsRequest.send(getSessionsForm);
     }
 
-    selectSession(event, data) {
-        const sessionId = data.value;
-
+    selectSession(sessionId) {
         this.props.onSessionChange(sessionId);
+
         this.setState({sessionId: sessionId, stepIdx: 0});
 
         this.loadSession(this.state.modelId, sessionId);
@@ -924,6 +926,7 @@ class ParametersBox extends React.Component {
                     this.setState({stepIdx: sessionMetadata.stepIdx});
 
                     /* Restore plots list for this session*/
+                    this.props.onPlotChange(null);
                     this.props.onPlotsFetch(sessionMetadata.plots);
                 } else {
                     /* Reset step index and parameters to defaults */
@@ -983,8 +986,14 @@ class ParametersBox extends React.Component {
                     sessionId: null,
 
                     sessions: this.state.sessions.filter(session =>
-                        session != this.state.sessionId)
+                        session != this.state.sessionId),
+
+                    stepIdx: null,
+                    openStepIdx: null
                 });
+
+                this.props.onPlotChange(null);
+                this.props.onSessionChange(null);
             });
 
             deleteSessionRequest.addEventListener("error", request => {
@@ -1011,87 +1020,134 @@ class ParametersBox extends React.Component {
     }
 
 	render() {
-        const {modelsInfo, modelId, sessionId, stepIdx, modelParams} = this.state;
+        const {modelsInfo, modelId, sessionId, stepIdx, openStepIdx, modelParams} = this.state;
 
         const model = modelsInfo[modelId];
-        const step = (model != null) ? model.steps[stepIdx] : null;
+        const openStep = (model != null) ? model.steps[openStepIdx] : null;
 
-        const modelDropdownChoice = Object.keys(modelsInfo).map((modelId, idx) => ({
-            text: modelsInfo[modelId].name,
-            value: modelId,
-            key: idx
+        const modelListChoice = Object.keys(modelsInfo).map((id, idx) => ({
+            header: modelsInfo[id].name,
+            description: modelsInfo[id].description,
+
+            key: idx,
+            active: id == modelId,
+            onClick: () => this.selectModel(id)
         }));
 
-        const sessionDropdownChoice = this.state.sessions.map((sessionId, idx) => ({
-            value: sessionId,
-            text: sessionId,
-            key: idx
+        const sessionListChoice = this.state.sessions.map((id, idx) => ({
+            header: id,
+            // TODO: Add description
+
+            key: idx,
+            active: id == sessionId,
+            onClick: () => this.selectSession(id)
         }));
+
+        const disableSessions = sessionId == null;
 
         let steps = [];
         if (model != null) {
             steps = model.steps.map((step, idx) => ({
                 title: step.name,
                 description: step.description,
-                index: idx,
 
-                disabled: idx > stepIdx || sessionId == null,
+                disabled: idx > stepIdx || disableSessions,
                 completed: idx < stepIdx,
                 active: stepIdx === idx,
 
-                onClick: this.openParamsDialog
+                onClick: () => this.openParamsDialog(idx)
             }));
         }
 
+        const {plotIdx, plotList} = this.props;
+
+        const plotOptions = plotList.map((plot, idx) => ({
+            key: idx, text: plot.name, value: idx
+        }));
+
 		return (
 			<div>
-                <Form size="mini">
-                    <Menu>
-                        <Menu.Item name="New session" disabled={modelId == null}
-                            onClick={this.openNewSessionDialog}>
-                            <Icon name="add" circular color="green"/>
+                <Menu size="mini" icon="labeled">
+                   <Menu.Item name="toggle view" onClick={this.props.onToggleView}>
+                        <Icon name="exchange" color="green"/>
+
+                        Toggle view
+                    </Menu.Item>
+
+                    {(this.props.view) ?
+                        <Menu.Item disabled={true}>
+                            <Dropdown fluid selection placeholder="Select plot"
+                                onChange={(e, d) => this.props.onPlotChange(d.value)}
+                                value={(plotIdx != null) ? plotIdx : ''}
+                                disabled={plotOptions.length <= 0}
+                                options={plotOptions}
+                            />
                         </Menu.Item>
+                    :
+                        <Menu.Item disabled={true}>
+                            <Icon name="download" color="teal" disabled={true}/>
 
-                        <Menu.Item name="Save session" disabled={sessionId == null}
-                            onClick={this.saveSession}>
-                            <Icon name="save" circular/>
+                            Download CSV
                         </Menu.Item>
+                    }
+                </Menu>
 
-                        <Menu.Item name="Delete session" disabled={sessionId == null}
-                            onClick={this.deleteSession}>
-                            <Icon name="remove" circular color="red"/>
-                        </Menu.Item>
-                    </Menu>
 
-                    <Menu vertical fluid>
-                        <Menu.Item>
-                            {/*
-                            <Button primary onClick={this.exportCsv}>
-                                Download as CSV
-                            </Button>
-                            */}
-                        </Menu.Item>
+                <Accordion styled fluid>
+                    <Accordion.Title>
+                        <Icon name="clone"/>
 
-                        <Menu.Item>
-                            <Dropdown fluid selection scrolling placeholder="Select model"
-                                options={modelDropdownChoice} onChange={this.selectModel}/>
+                        Models
 
-                            <Dropdown fluid selection scrolling placeholder="Select session"
-                                value={(sessionId != null) ? sessionId : ''}
-                                options={sessionDropdownChoice}
-                                onChange={this.selectSession}
-                                disabled={model == null}/>
-                        </Menu.Item>
-                    </Menu>
+                        <Icon name="dropdown" style={{float: "right"}}/>
+                    </Accordion.Title>
+                    <Accordion.Content>
+                        <List celled ordered animated selection verticalAlign="middle"
+                            items={modelListChoice}/>
+                    </Accordion.Content>
 
-                        {/*TODO: Add space*/}
+                    <Accordion.Title>
+                        <Icon name="folder open"/>
 
-                    <Step.Group fluid vertical ordered size="small" items={steps}/>
-                </Form>
+                        Sessions
+
+                        <Icon name="dropdown" style={{float: "right"}}/>
+                    </Accordion.Title>
+                    <Accordion.Content>
+                        {(model != null) &&
+                            <Menu widths={3} compact size="mini" icon="labeled">
+                                <Menu.Item name="New session" onClick={this.openNewSessionDialog}>
+                                    <Icon name="add" color="green"/>
+
+                                    New
+                                </Menu.Item>
+
+                                <Menu.Item name="Save session" disabled={disableSessions}
+                                    onClick={this.saveSession}>
+                                    <Icon name="save" disabled={disableSessions}/>
+
+                                    Save
+                                </Menu.Item>
+
+                                <Menu.Item name="Delete session" disabled={disableSessions}
+                                    onClick={this.deleteSession}>
+                                    <Icon name="remove" color="red" disabled={disableSessions}/>
+
+                                    Delete
+                                </Menu.Item>
+                            </Menu>
+                        }
+
+                       <List celled ordered animated selection verticalAlign="middle"
+                            items={sessionListChoice}/>
+                    </Accordion.Content>
+                </Accordion>
+
+                <Step.Group fluid vertical ordered size="small" items={steps}/>
 
                 {!this.sessionLoading &&
-                    <DragDropContainer isOpen={this.state.isParamsDialogOpen}
-                        onClose={() => {this.setState({isParamsDialogOpen: false})}}
+                    <DragDropContainer isOpen={openStepIdx != null}
+                        onClose={() => {this.setState({openStepIdx: null})}}
 
                         csvColumnValues={this.state.csvColumnValues}
                         resetParams={this.resetParamsToDefaults}
@@ -1099,8 +1155,8 @@ class ParametersBox extends React.Component {
                         modelId={modelId}
                         sessionId={sessionId}
 
-                        step={step}
-                        stepIdx={stepIdx}
+                        step={openStep}
+                        stepIdx={openStepIdx}
                         params={modelParams}
 
                         updateDependentParams={this.updateDependentParams}

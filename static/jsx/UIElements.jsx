@@ -2,7 +2,7 @@ import React from "react";
 
 import Slider, {Range} from "rc-slider";
 import {DragSource, DropTarget} from "react-dnd";
-import {Segment, Header, Form, Popup, Input, Button, Checkbox, Radio, Dropdown} from "semantic-ui-react";
+import {Grid, Segment, Header, Form, Popup, Input, Icon, Button, Checkbox, Radio, Dropdown} from "semantic-ui-react";
 
 function paramShallowCompare(nextProps, currProps) {
     for (let prop in nextProps) {
@@ -22,18 +22,21 @@ function FileInputParam(props) {
     let uploadCSVButtonRef;
 
     return (
-        <Input placeholder={description} size="mini" value={value}>
-            <input disabled/>
-
+        <Form.Field>
             <span style={{display: "none"}}>
-            <input type="file" ref={input => {uploadCSVButtonRef = input}}
-                onChange={props.onChange}/>
+                <input type="file" ref={input => {uploadCSVButtonRef = input}}
+                    onChange={props.onChange}/>
             </span>
 
-            <Button onClick={() => {uploadCSVButtonRef.click()}}>
-                {name}
+            <Button icon labelPosition="right" size="mini">
+                <Button.Content>
+                    {(value != '') ? value : description}
+                </Button.Content>
+
+                <Icon name="upload" color="teal"
+                    onClick={() => {uploadCSVButtonRef.click()}}/>
             </Button>
-        </Input>
+        </Form.Field>
     );
 }
 
@@ -154,6 +157,8 @@ class DropdownEditParam extends React.Component {
         if (options != this.props.options && options != null) {
             if (parameter.defaultValue == null) {
                 onChange(this.getDefaultValue(options.length, defaults));
+            } else {
+                // Default value was already set as value if options have changed
             }
         }
     }
@@ -174,10 +179,16 @@ class DropdownEditParam extends React.Component {
 
     render() {
         const {name, description, fieldDefaultValue} = this.props.parameter;
-        let {value=[]} = this.props.parameter;
+
+        let {value} = this.props.parameter;
+        const {options} = this.props;
 
         let dropdownOptions = [];
-        if (this.props.options != null && value.length > 0) {
+        if (options != null) {
+            if (value == null) {
+                value = this.getDefaultValue(options.length, fieldDefaultValue);
+            }
+
             dropdownOptions = this.props.options.map((item, idx) => ({
                 value: item,
                 text: item,
@@ -435,10 +446,13 @@ function DragDropTargetContainer(props) {
     const {size} = props.parameter;
 
     const containerStyle = {
-        height: 2.8*size + "rem",
-        border: "1px solid green",
-        borderTop: "none",
+        height: 2.8*size + "rem", //TODO:
+
+        border: "1px solid",
+        borderTo: "none",
+
         overflow: "auto"
+
     };
 
     const style = {
@@ -450,7 +464,7 @@ function DragDropTargetContainer(props) {
 
     if (size <= 1) {
         return props.connectDropTarget(
-            <div style={Object.assign({}, containerStyle, {width: "33%"})}>
+            <div>
                 {React.Children.map(props.children, child =>
                     <div> {child} </div>
                 )}
@@ -512,21 +526,25 @@ function DragDropParam(props) {
     // TODO: Fix loading
     if (capacity == 1) {
         return (
-            <div style={{display: "flex"}}>
-                <DragDropTarget containerId={props.parameterId} parameter={props.parameter}
-                    style={{flex: 1}} onChange={props.onChange}>
-                    <DragDropSource containerId={props.parameterId}
-                        item={value[0]} onChange={onDragSrcChange}/>
-                </DragDropTarget>
+            <Grid columns="equal" celled style={{margin: 0}}>
+                <Grid.Column textAlign="left">
+                    <DragDropTarget containerId={props.parameterId}
+                        parameter={props.parameter} onChange={props.onChange}>
+                        <DragDropSource containerId={props.parameterId}
+                            item={value[0]} onChange={onDragSrcChange}/>
+                    </DragDropTarget>
 
-                <div style={{textAlign: "center", flex: 1}}> &rArr; </div>
+                </Grid.Column>
+                <Grid.Column textAlign="center">
+                    &rArr;
+                </Grid.Column>
 
-                <Popup on="hover" content={description} trigger={
-                    <div style={{textAlign: "right", flex: 1}}>
-                        {name}
-                    </div>
-                }/>
-            </div>
+                <Grid.Column textAlign="center">
+                    <Popup on="hover" content={description} trigger={
+                        <div> {name} </div>
+                    }/>
+                </Grid.Column>
+            </Grid>
         );
     }
 

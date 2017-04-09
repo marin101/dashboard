@@ -143,8 +143,10 @@ def get_plots(dirname, stepId=None):
 
     plotsMetadata = []
     for plot in plots:
+        plotName = os.path.relpath(plot, dirname).replace(stepId, '', 1)
+
         plotsMetadata.append({
-            "name": os.path.relpath(plot, dirname),
+            "name": plotName.replace('_', ' ').strip()[:-5],
             "path": os.path.relpath(plot, SERVER_DIRECTORY)
         })
 

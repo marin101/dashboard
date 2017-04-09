@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import SplitPane from 'react-split-pane';
-import {Grid, Menu, Image} from "semantic-ui-react";
+import {Grid, Menu, Breadcrumb, Image, Icon} from "semantic-ui-react";
 
 import ParametersBox from "./parametersBox.jsx";
 import ModelOutputBox from "./modelOutputBox.jsx";
@@ -18,22 +18,36 @@ class Application extends React.Component {
         this.state = {
             username: null,
 
-            modelId: null,
+            modelName: null,
             sessionId: null,
 
-            view: 0,
+            view: false,
+
+            plotIdx: null,
             plotList: [],
+
             consoleOutput: []
         };
 
+        this.toggleView = this.toggleView.bind(this);
+
+        this.changePlotIndex = this.changePlotIndex.bind(this);
         this.storeModelOutput = this.storeModelOutput.bind(this);
 
         this.storeUsername = this.storeUsername.bind(this);
-        this.storeModelId = this.storeModelId.bind(this);
+        this.updateModelName= this.updateModelName.bind(this);
         this.storeSessionId = this.storeSessionId.bind(this);
 
         this.storePlots= this.storePlots.bind(this);
         this.storeModelOutput = this.storeModelOutput.bind(this);
+    }
+
+    changePlotIndex(idx) {
+        this.setState({plotIdx: idx});
+    }
+
+    toggleView() {
+        this.setState({view: !this.state.view});
     }
 
     storeModelOutput(consoleOutput, plots) {
@@ -55,16 +69,12 @@ class Application extends React.Component {
         this.setState({plotList: plots});
     }
 
-    storeModelId(modelId) {
-        this.setState({modelId: modelId});
-    }
-
-    setView(view) {
-        this.setState({view: view});
+    updateModelName(modelName) {
+        this.setState({modelName: modelName});
     }
 
 	render() {
-        const {username, modelId, sessionId, plotList} = this.state;
+        const {username, modelName, sessionId, plotList, view} = this.state;
 
         const applicationStyle = {
             flexDirection: "column",
@@ -86,11 +96,52 @@ class Application extends React.Component {
             padding: 0
         };
 
+        let viewName = '';
+        if (modelName != null && sessionId != null) {
+            viewName = view ? "Plots view" : "Console output view";
+        }
+
+        let currentPlot;
+        if (this.state.plotIdx != null) {
+            currentPlot = this.state.plotList[this.state.plotIdx];
+        }
+
+        const plotStyle = {
+            height: "100%",
+            width: "100%"
+        };
+
 		return (
             <div style={applicationStyle}>
-				<Menu size="large" style={{margin: 0, borderWidth: "0 0 1px 0"}}>
-					<Menu.Item header style={{padding: 0}}>
-                        <Image src="/static/images/logo.png"/>
+				<Menu size="small" borderless style={{margin: 0, borderWidth: "0 0 1px 0"}}>
+					<Menu.Item fitted header>
+                        <Image src="/static/images/logo.png" size="small" as='a'
+                            href="http://analyticalwizards.com/" target="_blank"/>
+                    </Menu.Item>
+
+                    <Menu.Item>
+                        <Breadcrumb>
+                            <Breadcrumb.Section>
+                                <b> {this.state.modelName} </b>
+                            </Breadcrumb.Section>
+
+                            <Breadcrumb.Divider icon="right angle"/>
+
+                            <Breadcrumb.Section>
+                                {this.state.sessionId}
+                            </Breadcrumb.Section>
+
+                            <Breadcrumb.Divider icon="right angle"/>
+
+                            <Breadcrumb.Section>
+                                <small> {viewName} </small>
+                            </Breadcrumb.Section>
+                        </Breadcrumb>
+                    </Menu.Item>
+
+                    <Menu.Item position="right">
+                        <Icon name="user" color="blue"/>
+                        <em> {this.state.username} </em>
                     </Menu.Item>
 				</Menu>
 
@@ -100,15 +151,18 @@ class Application extends React.Component {
                             onUsernameChange={this.storeUsername}
                             onModelOutputChange={this.storeModelOutput}
                             onSessionChange={this.storeSessionId}
-                            onModelChange={this.storeModelId}
+                            onModelChange={this.updateModelName}
+                            onPlotChange={this.changePlotIndex}
                             onPlotsFetch={this.storePlots}
-                            onViewChange={this.setView}/>
+                            onToggleView={this.toggleView}
+                            plotList={this.state.plotList}
+                            plotIdx={this.state.plotIdx}
+                            view={this.state.view}/>
                     </Grid.Column>
 
-                    <Grid.Column width={13} style={gridColumnStyle}>
-                        {(this.state.view == 0) ?
-                            <ModelOutputBox username={username} modelId={modelId}
-                                sessionId={sessionId} plotList={plotList}/>
+                    <Grid.Column width={13}>
+                        {(this.state.view) ?
+                            <ModelOutputBox plot={currentPlot}/>
                         :
                             <ConsoleOutputBox output={this.state.consoleOutput}/>
                         }
