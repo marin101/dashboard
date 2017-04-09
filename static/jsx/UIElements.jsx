@@ -45,7 +45,6 @@ function TextParam(props) {
     const {name, description, value='', defaultValue, min, max} = props.parameter;
 
     let valueType;
-    // TODO: Verify that it works
     switch (props.parameter.validation) {
         case "integer":
             valueType = "number";
@@ -178,7 +177,7 @@ class DropdownEditParam extends React.Component {
     }
 
     render() {
-        const {name, description, fieldDefaultValue} = this.props.parameter;
+        const {name, description, validation=[], fieldDefaultValue} = this.props.parameter;
 
         let {value} = this.props.parameter;
         const {options} = this.props;
@@ -189,22 +188,36 @@ class DropdownEditParam extends React.Component {
                 value = this.getDefaultValue(options.length, fieldDefaultValue);
             }
 
-            dropdownOptions = this.props.options.map((item, idx) => ({
-                value: item,
-                text: item,
-                key: idx,
+            dropdownOptions = this.props.options.map((item, idx) => {
+                let valueType;
+                switch (validation[Math.min(idx, validation.length - 1)]) {
+                    case "integer":
+                        valueType = "number";
+                        break;
+                    case "hidden":
+                        valueType: "password";
+                        break;
+                    default:
+                        valueType = "text";
+                }
 
-                content: (
-                    <Input focus value={value[idx]} label={{content: item}}
-                        onChange={(e, data) => {
-                            const newValue = value.slice();
+                return {
+                    value: item,
+                    text: item,
+                    key: idx,
 
-                            newValue[idx] = data.value;
-                            this.props.onChange(newValue);
-                        }
-                    }/>
-                )
-            }));
+                    content: (
+                        <Input focus value={value[idx]} label={{content: item}}
+                            type={valueType} onChange={(e, data) => {
+                                const newValue = value.slice();
+
+                                newValue[idx] = data.value;
+                                this.props.onChange(newValue);
+                            }
+                        }/>
+                    )
+                }
+            });
         }
 
         return (
