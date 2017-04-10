@@ -53,7 +53,7 @@ def init_database(database):
         # TODO: Default users
         add_user(database, "admin", "marin")
         add_user(database, "marin", "admin")
-    except sqlite3.IntegrityError as e:
+    except sqlite3.IntegrityError:
         pass
 
     database.commit()
@@ -119,6 +119,10 @@ def save_session():
     username = auth.username()
     model = request.form["model"]
     session = request.form["session"]
+    step_idx = request.form["stepIdx"]
+
+    all_params = json.loads(request.form["allParamValues"])
+    completed_steps = json.loads(request.form["completedSteps"])
 
     model_dir = os.path.join(get_user_dirpath(username), model)
     session_dir = os.path.join(model_dir, session)
@@ -127,7 +131,7 @@ def save_session():
 
     try:
         shutil.rmtree(save_dir, True)
-    except OSError as e:
+    except OSError:
         pass
 
     try:
@@ -135,22 +139,31 @@ def save_session():
     except OSError as e:
         logging.error(e)
 
+    # Store current state of the model
+    with open(os.path.join(save_dir, "metadata"), 'w') as metadata:
+        json.dump({
+            "completedSteps": completed_steps,
+            "paramValues": all_params,
+
+            "stepIdx": step_idx
+        }, metadata)
+
     return json.dumps(None)
 
-def get_plots(dirname, stepId=None):
-    plots_regex = stepId + "*.html" if stepId is not None else "*.html"
-    plots = glob.glob(os.path.join(dirname, plots_regex))
+def get_plots(dirname, step_id):
+    plots = glob.glob(os.path.join(dirname, step_id + "*.html"))
 
-    plotsMetadata = []
+    plots_info = []
     for plot in plots:
-        plotName = os.path.relpath(plot, dirname).replace(stepId, '', 1)
+        # Plot name is everything between step ID and .html
+        plotName = os.path.relpath(plot, dirname).replace(step_id, '', 1)[:-5]
 
-        plotsMetadata.append({
-            "name": plotName.replace('_', ' ').strip()[:-5],
+        plots_info.append({
+            "name": plotName.replace('_', ' ').strip(),
             "path": os.path.relpath(plot, SERVER_DIRECTORY)
         })
 
-    return plotsMetadata
+    return sorted(plots_info, key=lambda x: x["name"])
 
 @app.route("/load_session/", methods=["POST"])
 def load_session():
@@ -162,17 +175,21 @@ def load_session():
     session_dir = os.path.join(model_dir, session)
     save_dir = os.path.join(session_dir, "saved")
 
-    session_metadata = {}
-
     try:
         with open(os.path.join(save_dir, "metadata"), 'r') as metadata:
             session_metadata = json.load(metadata)
-            stepId = session_metadata["stepId"]
 
         # There can be no plots if metadata is missing
-        session_metadata["plots"] = get_plots(save_dir, stepId)
+        completed_steps = session_metadata["completedSteps"]
     except IOError as e:
-        pass
+        return json.dumps({})
+
+    plots = session_metadata["plots"] = []
+    logs = session_metadata["logs"] = []
+
+    for step_id in completed_steps:
+        plots.append(get_plots(save_dir, step_id))
+        logs.append(get_log(save_dir, step_id))
 
     return json.dumps(session_metadata)
 
@@ -280,9 +297,15 @@ def fetch_model_description():
 
     return json.dumps(description)
 
-def get_model_output(dirpath, stepId):
-    with open(os.path.join(dirpath, stepId + "_output.log"), 'r') as output_log:
-        return output_log.readlines()
+def get_log(dirpath, step_id):
+    log = step_id + "_output.log"
+
+    try:
+        with open(os.path.join(dirpath, log), 'r') as output_log:
+            return ''.join(output_log.readlines())
+    except IOError as e:
+        logging.error(e)
+        return ''
 
 @app.route("/run_model/", methods=["POST"])
 def run_model():
@@ -292,13 +315,11 @@ def run_model():
     model = request.form["model"]
     session = request.form["session"]
 
-    stepId = request.form["stepId"]
-    stepIdx = request.form["stepIdx"]
+    step_id = request.form["stepId"]
+    step_idx = request.form["stepIdx"]
 
-    allParams = json.loads(request.form["allParamValues"])
     runParams = json.loads(request.form["runParamValues"])
 
-    # /p
     for i, param in enumerate(runParams):
         runParams[i] = str(param)
 
@@ -314,24 +335,13 @@ def run_model():
     model_script = os.path.join(MODELS_DIRECTORY, model  + ".R")
 
     # Run model as a separate subprocess with given parameters
-    model_call = ["Rscript", model_script, temp_dir, str(stepIdx)] + runParams
+    model_call = ["Rscript", model_script, temp_dir, str(step_idx)] + runParams
 
     with open(os.devnull, 'w') as devnull:
         retval = subprocess.call(model_call, stdout=devnull)
 
-    result = get_model_output(temp_dir, stepId)
-
-    # Store current state of the model
-    with open(os.path.join(temp_dir, "metadata"), 'w') as metadata:
-        json.dump({
-            "stepId": stepId,
-            "stepIdx": stepIdx,
-
-            "paramValues": allParams
-        }, metadata)
-
-    # TODO:
-    plots = get_plots(temp_dir, stepId)
+    result = get_log(temp_dir, step_id)
+    plots = get_plots(temp_dir, step_id)
 
     return json.dumps({"consoleOutput": result, "plots": plots});
 
