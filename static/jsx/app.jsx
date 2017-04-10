@@ -18,6 +18,7 @@ class Application extends React.Component {
         this.state = {
             username: null,
 
+            modelId: null,
             modelName: null,
             stepName: '',
             sessionId: null,
@@ -27,7 +28,7 @@ class Application extends React.Component {
             plotIdx: null,
             plotList: [],
 
-            consoleOutput: [],
+            consoleOutput: {},
 
             modelRunning: false
         };
@@ -38,8 +39,8 @@ class Application extends React.Component {
         this.storeModelOutput = this.storeModelOutput.bind(this);
 
 
+        this.updateModel = this.updateModel.bind(this);
         this.storeUsername = this.storeUsername.bind(this);
-        this.updateModelName= this.updateModelName.bind(this);
         this.storeSessionId = this.storeSessionId.bind(this);
 
         this.storePlots= this.storePlots.bind(this);
@@ -56,9 +57,15 @@ class Application extends React.Component {
         this.setState({view: !this.state.view});
     }
 
-    storeModelOutput(consoleOutput, plots) {
+    storeModelOutput(modelId, consoleOutput, plotList) {
+        const output = Object.assign({}, consoleOutput);
+        const plots = Object.assign({}, plotList);
+
+        output[modelId] = consoleOutput || [];
+        plots[modelId] = plotList || [];
+
         this.setState({
-            consoleOutput: consoleOutput,
+            consoleOutput: output,
             plotList: plots
         });
     }
@@ -75,8 +82,11 @@ class Application extends React.Component {
         this.setState({plotList: plots});
     }
 
-    updateModelName(modelName) {
-        this.setState({modelName: modelName});
+    updateModel(modelId, modelName) {
+        this.setState({
+            modelName: modelName,
+            modelId: modelId
+        });
     }
 
     setModelState(state, step) {
@@ -87,7 +97,7 @@ class Application extends React.Component {
     }
 
 	render() {
-        const {username, modelName, sessionId, plotList, view} = this.state;
+        const {username, modelId, modelName, sessionId, plotList, view} = this.state;
 
         const applicationStyle = {
             flexDirection: "column",
@@ -116,7 +126,7 @@ class Application extends React.Component {
 
         let currentPlot;
         if (this.state.plotIdx != null) {
-            currentPlot = this.state.plotList[this.state.plotIdx];
+            currentPlot = this.state.plotList[modelId][this.state.plotIdx];
         }
 
         let outputBox = '';
@@ -126,9 +136,8 @@ class Application extends React.Component {
         } else if (this.state.view) {
             outputBox = <ModelOutputBox plot={currentPlot}/>;
         } else {
-            outputBox = <ConsoleOutputBox output={this.state.consoleOutput}/>;
+            outputBox = <ConsoleOutputBox output={this.state.consoleOutput[modelId]}/>;
         }
-
 
 		return (
             <div style={applicationStyle}>
@@ -172,12 +181,13 @@ class Application extends React.Component {
 
                             onUsernameChange={this.storeUsername}
                             onModelOutputChange={this.storeModelOutput}
+                            plotList={this.state.plotList[modelId]}
+
                             onSessionChange={this.storeSessionId}
-                            onModelChange={this.updateModelName}
                             onPlotChange={this.changePlotIndex}
+                            onModelChange={this.updateModel}
                             onPlotsFetch={this.storePlots}
                             onToggleView={this.toggleView}
-                            plotList={this.state.plotList}
                             plotIdx={this.state.plotIdx}
                             view={this.state.view}/>
                     </Grid.Column>

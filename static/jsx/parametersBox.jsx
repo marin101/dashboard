@@ -753,7 +753,7 @@ class ParametersBox extends React.Component {
                 const {consoleOutput, plots} = JSON.parse(request.target.response);
 
                 this.props.onPlotChange(null);
-                this.props.onModelOutputChange(consoleOutput, plots);
+                this.props.onModelOutputChange(this.state.modelId, consoleOutput, plots);
 
                 const model = this.state.modelsInfo[this.state.modelId];
 
@@ -848,7 +848,7 @@ class ParametersBox extends React.Component {
         });
 
         this.setState({modelId: modelId});
-        this.props.onModelChange(model.name);
+        this.props.onModelChange(modelId, model.name);
 
         /* Reset source parameters list */
         this.sourceParams = {};
@@ -1085,7 +1085,7 @@ class ParametersBox extends React.Component {
             }));
         }
 
-        const {plotIdx, plotList} = this.props;
+        const {plotIdx, plotList=[]} = this.props;
 
         const plotOptions = plotList.map((plot, idx) => ({
             key: idx, text: plot.name, value: idx

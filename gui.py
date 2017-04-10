@@ -280,6 +280,10 @@ def fetch_model_description():
 
     return json.dumps(description)
 
+def get_model_output(dirpath, stepId):
+    with open(os.path.join(dirpath, stepId + "_output.log"), 'r') as output_log:
+        return output_log.readlines()
+
 @app.route("/run_model/", methods=["POST"])
 def run_model():
     username = auth.username()
@@ -315,8 +319,7 @@ def run_model():
     with open(os.devnull, 'w') as devnull:
         retval = subprocess.call(model_call, stdout=devnull)
 
-    with open(os.path.join(temp_dir, "output.log"), 'r') as output_log:
-        result = output_log.readlines()
+    result = get_model_output(temp_dir, stepId)
 
     # Store current state of the model
     with open(os.path.join(temp_dir, "metadata"), 'w') as metadata:

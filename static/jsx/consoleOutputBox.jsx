@@ -13,9 +13,11 @@ class ConsoleOutputBox extends React.Component {
 	}
 
 	render() {
+        const {output=[]} = this.props;
+
 		return (
 			<div style={{"width": "100%", "overflow": "auto"}}>
-                {this.props.output.map((line, idx) =>
+                {output.map((line, idx) =>
                     <div key={idx} style={{"whiteSpace": "pre-wrap"}}>
                         {line} <br/>
                     </div>
