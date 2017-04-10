@@ -262,6 +262,8 @@ class ParametersDialog extends React.Component {
                 return param.value;
             }
         }));
+
+        this.props.onClose();
     }
 
     validateParams() {
@@ -329,6 +331,9 @@ class ParametersDialog extends React.Component {
             pageBodyParamIds = pageLayout.body;
         }
 
+        const isLastPage = page < step.layout.length - 1;
+        const disableNext = isLastPage && this.props.disableRun;
+
         return (
             <Modal size={pageLayout.size} open={this.props.isOpen} onClose={this.props.onClose}
                 closeOnDimmerClick={false} closeIcon>
@@ -370,8 +375,8 @@ class ParametersDialog extends React.Component {
                             <Button negative disabled={page <= 0} onClick={this.goToPrevPage}>
                                 Back
                             </Button>
-                            <Button positive onClick={this.goToNextPage}>
-                                {(page < step.layout.length - 1) ? "Next" : "Run"}
+                            <Button positive onClick={this.goToNextPage} disable={disableNext}>
+                                {isLastPage ? "Next" : "Run"}
                             </Button>
                         </Grid.Column>
                     </Grid>
@@ -535,6 +540,7 @@ class ParametersBox extends React.Component {
             errorMsg: null,
 		};
 
+        this.modelRunning = false;
         this.sessionLoading = false;
         this.csvOperationActive = false;
 
@@ -734,46 +740,52 @@ class ParametersBox extends React.Component {
     }
 
 	runModel(currStep, runParamValues) {
-		const runModelRequest = new XMLHttpRequest();
+        if (!this.modelRunning) {
+            this.modelRunning = true;
 
-		runModelRequest.addEventListener("load", request => {
-            const {consoleOutput, plots} = JSON.parse(request.target.response);
+            const runModelRequest = new XMLHttpRequest();
 
-            this.props.onPlotChange(null);
-            this.props.onModelOutputChange(consoleOutput, plots);
+            runModelRequest.addEventListener("load", request => {
+                const {consoleOutput, plots} = JSON.parse(request.target.response);
 
-            const model = this.state.modelsInfo[this.state.modelId];
+                this.props.onPlotChange(null);
+                this.props.onModelOutputChange(consoleOutput, plots);
 
-            if (this.state.openStepIdx < model.steps.length) {
-                this.setState({stepIdx: this.state.openStepIdx + 1});
+                const model = this.state.modelsInfo[this.state.modelId];
+
+                if (this.state.openStepIdx < model.steps.length) {
+                    this.setState({stepIdx: this.state.openStepIdx + 1});
+                }
+
+                this.setState({openStepIdx: null});
+                this.modelRunning = false;
+            });
+
+            runModelRequest.addEventListener("error", request => {
+                this.setState({errorMsg: request.target.response});
+                this.modelRunning = false;
+            });
+
+            const allParamValues = {};
+            for (let paramId in this.state.modelParams) {
+                const {value} = this.state.modelParams[paramId];
+
+                allParamValues[paramId] = value;
             }
 
-            this.setState({openStepIdx: null});
-		});
+            const modelForm = new FormData();
+            modelForm.set("model", this.state.modelId);
+            modelForm.set("session", this.state.sessionId);
 
-		runModelRequest.addEventListener("error", request => {
-            this.setState({errorMsg: request.target.response});
-		});
+            modelForm.set("stepId", currStep.id);
+            modelForm.set("stepIdx", this.state.openStepIdx + 1);
 
-        const allParamValues = {};
-        for (let paramId in this.state.modelParams) {
-            const {value} = this.state.modelParams[paramId];
+            modelForm.set("runParamValues", JSON.stringify(runParamValues));
+            modelForm.set("allParamValues", JSON.stringify(allParamValues));
 
-            allParamValues[paramId] = value;
+            runModelRequest.open("POST", "/run_model/");
+            runModelRequest.send(modelForm);
         }
-
-        const modelForm = new FormData();
-        modelForm.set("model", this.state.modelId);
-        modelForm.set("session", this.state.sessionId);
-
-        modelForm.set("stepId", currStep.id);
-        modelForm.set("stepIdx", this.state.openStepIdx + 1);
-
-        modelForm.set("runParamValues", JSON.stringify(runParamValues));
-        modelForm.set("allParamValues", JSON.stringify(allParamValues));
-
-		runModelRequest.open("POST", "/run_model/");
-		runModelRequest.send(modelForm);
 	}
 
 	changeParamValue(paramId, newValue) {
@@ -1169,6 +1181,8 @@ class ParametersBox extends React.Component {
                         step={openStep}
                         stepIdx={openStepIdx}
                         params={modelParams}
+
+                        disableRun={this.modelRunning}
 
                         updateDependentParams={this.updateDependentParams}
                         onChange={this.changeParamValue}
