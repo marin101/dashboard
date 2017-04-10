@@ -106,11 +106,6 @@ class Application extends React.Component {
             currentPlot = this.state.plotList[this.state.plotIdx];
         }
 
-        const plotStyle = {
-            height: "100%",
-            width: "100%"
-        };
-
 		return (
             <div style={applicationStyle}>
 				<Menu size="small" borderless style={{margin: 0, borderWidth: "0 0 1px 0"}}>
@@ -160,7 +155,7 @@ class Application extends React.Component {
                             view={this.state.view}/>
                     </Grid.Column>
 
-                    <Grid.Column width={13}>
+                    <Grid.Column width={13} style={{overflow: "auto"}}>
                         {(this.state.view) ?
                             <ModelOutputBox plot={currentPlot}/>
                         :
