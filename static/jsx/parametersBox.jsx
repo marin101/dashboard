@@ -375,7 +375,7 @@ class ParametersDialog extends React.Component {
                             <Button negative disabled={page <= 0} onClick={this.goToPrevPage}>
                                 Back
                             </Button>
-                            <Button positive onClick={this.goToNextPage} disable={disableNext}>
+                            <Button positive onClick={this.goToNextPage} disabled={disableNext}>
                                 {isLastPage ? "Next" : "Run"}
                             </Button>
                         </Grid.Column>
@@ -742,10 +742,14 @@ class ParametersBox extends React.Component {
 	runModel(currStep, runParamValues) {
         if (!this.modelRunning) {
             this.modelRunning = true;
+            this.props.onModelRun(currStep.name);
 
             const runModelRequest = new XMLHttpRequest();
 
             runModelRequest.addEventListener("load", request => {
+                this.props.onModelRunFinish();
+                this.modelRunning = false;
+
                 const {consoleOutput, plots} = JSON.parse(request.target.response);
 
                 this.props.onPlotChange(null);
@@ -756,14 +760,14 @@ class ParametersBox extends React.Component {
                 if (this.state.openStepIdx < model.steps.length) {
                     this.setState({stepIdx: this.state.openStepIdx + 1});
                 }
-
                 this.setState({openStepIdx: null});
-                this.modelRunning = false;
             });
 
             runModelRequest.addEventListener("error", request => {
-                this.setState({errorMsg: request.target.response});
+                this.props.onModelRunFinish();
                 this.modelRunning = false;
+
+                this.setState({errorMsg: request.target.response});
             });
 
             const allParamValues = {};

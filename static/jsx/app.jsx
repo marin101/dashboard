@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import SplitPane from 'react-split-pane';
-import {Grid, Menu, Breadcrumb, Image, Icon} from "semantic-ui-react";
+import {Grid, Menu, Breadcrumb, Loader, Image, Icon} from "semantic-ui-react";
 
 import ParametersBox from "./parametersBox.jsx";
 import ModelOutputBox from "./modelOutputBox.jsx";
@@ -19,6 +19,7 @@ class Application extends React.Component {
             username: null,
 
             modelName: null,
+            stepName: '',
             sessionId: null,
 
             view: false,
@@ -26,7 +27,9 @@ class Application extends React.Component {
             plotIdx: null,
             plotList: [],
 
-            consoleOutput: []
+            consoleOutput: [],
+
+            modelRunning: false
         };
 
         this.toggleView = this.toggleView.bind(this);
@@ -34,12 +37,15 @@ class Application extends React.Component {
         this.changePlotIndex = this.changePlotIndex.bind(this);
         this.storeModelOutput = this.storeModelOutput.bind(this);
 
+
         this.storeUsername = this.storeUsername.bind(this);
         this.updateModelName= this.updateModelName.bind(this);
         this.storeSessionId = this.storeSessionId.bind(this);
 
         this.storePlots= this.storePlots.bind(this);
         this.storeModelOutput = this.storeModelOutput.bind(this);
+
+        this.setModelState = this.setModelState.bind(this);
     }
 
     changePlotIndex(idx) {
@@ -71,6 +77,13 @@ class Application extends React.Component {
 
     updateModelName(modelName) {
         this.setState({modelName: modelName});
+    }
+
+    setModelState(state, step) {
+        this.setState({
+            modelRunning: state,
+            stepName: step || ''
+        });
     }
 
 	render() {
@@ -105,6 +118,17 @@ class Application extends React.Component {
         if (this.state.plotIdx != null) {
             currentPlot = this.state.plotList[this.state.plotIdx];
         }
+
+        let outputBox = '';
+
+        if (this.state.modelRunning) {
+            outputBox = <Loader active> {this.state.stepName} step is running </Loader>;
+        } else if (this.state.view) {
+            outputBox = <ModelOutputBox plot={currentPlot}/>;
+        } else {
+            outputBox = <ConsoleOutputBox output={this.state.consoleOutput}/>;
+        }
+
 
 		return (
             <div style={applicationStyle}>
@@ -143,6 +167,9 @@ class Application extends React.Component {
                 <Grid stackable divided columns={2} style={{flex: 1, margin: 0}}>
                     <Grid.Column width={3} style={gridColumnStyle}>
                         <ParametersBox sessionId={sessionId}
+                            onModelRunFinish={() => {this.setModelState(false)}}
+                            onModelRun={(p) => {this.setModelState(true, p)}}
+
                             onUsernameChange={this.storeUsername}
                             onModelOutputChange={this.storeModelOutput}
                             onSessionChange={this.storeSessionId}
@@ -156,12 +183,8 @@ class Application extends React.Component {
                     </Grid.Column>
 
                     <Grid.Column width={13} style={{overflow: "auto"}}>
-                        {(this.state.view) ?
-                            <ModelOutputBox plot={currentPlot}/>
-                        :
-                            <ConsoleOutputBox output={this.state.consoleOutput}/>
-                        }
-                    </Grid.Column>
+                        {outputBox}
+                   </Grid.Column>
                 </Grid>
             </div>
 		);
