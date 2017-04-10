@@ -122,7 +122,7 @@ class Application extends React.Component {
         let outputBox = '';
 
         if (this.state.modelRunning) {
-            outputBox = <Loader active> {this.state.stepName} step is running </Loader>;
+            outputBox = <Loader active> {this.state.stepName} running </Loader>;
         } else if (this.state.view) {
             outputBox = <ModelOutputBox plot={currentPlot}/>;
         } else {

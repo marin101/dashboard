@@ -183,9 +183,9 @@ class ParametersDialog extends React.Component {
     }
 
     runModel() {
-        const {step, params} = this.props;
+        const {stepIdx, step, params} = this.props;
 
-        this.props.onRunModel(step, step.parameters.map(paramId => {
+        this.props.onRunModel(stepIdx, step, step.parameters.map(paramId => {
             const param = params[paramId];
 
             switch (param.type) {
@@ -376,7 +376,7 @@ class ParametersDialog extends React.Component {
                                 Back
                             </Button>
                             <Button positive onClick={this.goToNextPage} disabled={disableNext}>
-                                {isLastPage ? "Next" : "Run"}
+                                {isLastPage ? "Run": "Next"}
                             </Button>
                         </Grid.Column>
                     </Grid>
@@ -739,10 +739,10 @@ class ParametersBox extends React.Component {
         }
     }
 
-	runModel(currStep, runParamValues) {
+	runModel(stepIdx, step, runParamValues) {
         if (!this.modelRunning) {
             this.modelRunning = true;
-            this.props.onModelRun(currStep.name);
+            this.props.onModelRun(step.name);
 
             const runModelRequest = new XMLHttpRequest();
 
@@ -757,10 +757,9 @@ class ParametersBox extends React.Component {
 
                 const model = this.state.modelsInfo[this.state.modelId];
 
-                if (this.state.openStepIdx < model.steps.length) {
-                    this.setState({stepIdx: this.state.openStepIdx + 1});
+                if (stepIdx < model.steps.length) {
+                    this.setState({stepIdx: stepIdx + 1});
                 }
-                this.setState({openStepIdx: null});
             });
 
             runModelRequest.addEventListener("error", request => {
@@ -781,8 +780,8 @@ class ParametersBox extends React.Component {
             modelForm.set("model", this.state.modelId);
             modelForm.set("session", this.state.sessionId);
 
-            modelForm.set("stepId", currStep.id);
-            modelForm.set("stepIdx", this.state.openStepIdx + 1);
+            modelForm.set("stepId", step.id);
+            modelForm.set("stepIdx", stepIdx + 1);
 
             modelForm.set("runParamValues", JSON.stringify(runParamValues));
             modelForm.set("allParamValues", JSON.stringify(allParamValues));
