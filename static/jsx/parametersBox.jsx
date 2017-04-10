@@ -331,7 +331,7 @@ class ParametersDialog extends React.Component {
             pageBodyParamIds = pageLayout.body;
         }
 
-        const isLastPage = page < step.layout.length - 1;
+        const isLastPage = page >= step.layout.length - 1;
         const disableNext = isLastPage && this.props.disableRun;
 
         return (
