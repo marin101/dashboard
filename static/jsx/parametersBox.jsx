@@ -1117,7 +1117,11 @@ class ParametersBox extends React.Component {
                    <Menu.Item name="toggle view" onClick={this.props.onToggleView}>
                         <Icon name="exchange" color="green"/>
 
-                        Toggle view
+                        {this.props.view ?
+                            <div> View console </div>
+                        :
+                            <div> View plots </div>
+                        }
                     </Menu.Item>
 
                     <Menu.Item name="parameters" onClick={this.openParamsDialog}>

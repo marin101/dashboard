@@ -19,8 +19,6 @@ module.exports = {
     vendor: [
 		'react',
 		'react-dom',
-		'react-split-pane',
-		'react-split-panel',
 
         'rc-slider',
 

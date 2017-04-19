@@ -1,15 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import SplitPane from 'react-split-pane';
 import {Grid, Menu, Breadcrumb, Loader, Image, Icon} from "semantic-ui-react";
 
 import ParametersBox from "./parametersBox.jsx";
 import ModelOutputBox from "./modelOutputBox.jsx";
 import ConsoleOutputBox from "./consoleOutputBox.jsx";
-
-//import "react-split-panel/dist/splitPanel.css";
-import "../css/styles.css";
 
 class Application extends React.Component {
     constructor() {
