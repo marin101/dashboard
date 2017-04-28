@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import {Grid, Accordion, Dropdown, List, Message, Icon, Button, Popup, Form, Menu, Step, Input, Modal} from "semantic-ui-react";
+import {Grid, Accordion, Dropdown, List, Message, Icon, Button, Form, Menu, Step, Input, Modal} from "semantic-ui-react";
 import {DropdownEditParam, TextParam, CheckboxParam, RadioParam} from "./UIElements.jsx";
 import {DropdownParam, SliderParam, RangeParam, DragDropParam} from "./UIElements.jsx";
 import {FileInputParam} from "./UIElements.jsx";
@@ -58,6 +58,7 @@ function PageParams(props) {
             <PageParams key={idx} params={params} paramIds={childParamIds}
                 csvColumnValues={props.csvColumnValues}
 
+                uploadFile={props.uploadFile}
                 onChange={props.onChange}
                 isGridRow={!isGridRow}
             />
@@ -96,7 +97,8 @@ function PageParams(props) {
 
     const paramElem = (
         <Param paramId={paramIds} param={param} dataSet={dataSet} disabled={disabled}
-            onChange={props.onChange.bind(this, paramIds)}
+            onChange={(param.type != "file") ? props.onChange.bind(this, paramIds)
+            : props.uploadFile.bind(this, paramIds)}
         />
     );
 
@@ -116,6 +118,8 @@ class ParametersDialog extends React.Component {
         };
 
         this.runModel = this.runModel.bind(this);
+
+        this.uploadFile = this.uploadFile.bind(this);
         this.resetParams = this.resetParams.bind(this);
         this.goToPrevPage = this.goToPrevPage.bind(this);
         this.goToNextPage = this.goToNextPage.bind(this);
@@ -138,37 +142,35 @@ class ParametersDialog extends React.Component {
         this.props.updateDependentParams(pageParams);
     }
 
-    uploadCsvFile(paramId, event) {
-        const file = event.target.files[0];
-
+    uploadFile(paramId, file) {
         if (file != null) {
-            const uploadCsvFileRequest = new XMLHttpRequest();
+            const uploadFileRequest = new XMLHttpRequest();
 
-            uploadCsvFileRequest.addEventListener("load", request => {
+            uploadFileRequest.addEventListener("load", request => {
                 const csvFieldnames = JSON.parse(request.target.response);
-
                 const targetParamId = this.props.params[paramId].target;
-                const targetParam = this.props.params[targetParamId];
 
                 /* Update filename parameter */
                 this.props.onChange(paramId, file.name);
 
-                /* Update referenced target parameter */
-                this.props.onChange(targetParamId, csvFieldnames.sort());
+                if (targetParamId != null) {
+                    const targetParam = this.props.params[targetParamId];
 
-                /* Update all parameters corresponding to the same dragDrop group */
-                for (let paramId in this.props.params) {
-                    const param = this.props.params[paramId];
+                    /* Update referenced target parameter */
+                    this.props.onChange(targetParamId, csvFieldnames.sort());
 
-                    if (paramId != targetParamId && param.group == targetParam.group) {
-                        this.props.onChange(paramId, []);
+                    /* Update all parameters corresponding to the same dragDrop group */
+                    for (let paramId in this.props.params) {
+                        const param = this.props.params[paramId];
+
+                        if (paramId != targetParamId && param.group == targetParam.group) {
+                            this.props.onChange(paramId, []);
+                        }
                     }
                 }
-
-                this.props.onChange
             });
 
-            uploadCsvFileRequest.addEventListener("error", request => {
+            uploadFileRequest.addEventListener("error", request => {
                 //TODO: Add error handling
             });
 
@@ -177,8 +179,8 @@ class ParametersDialog extends React.Component {
             csvFileForm.append("session", this.props.sessionId);
             csvFileForm.append("csvFile", file);
 
-            uploadCsvFileRequest.open("POST", "/upload_csv_file/");
-            uploadCsvFileRequest.send(csvFileForm);
+            uploadFileRequest.open("POST", "/upload_csv_file/");
+            uploadFileRequest.send(csvFileForm);
         }
     }
 
@@ -347,7 +349,7 @@ class ParametersDialog extends React.Component {
                             style={{marginRight: "10px"}}>
                             {pageHeaderParams.map((paramId, idx) =>
                                 <FileInputParam parameter={params[paramId]} key={idx}
-                                    onChange={this.uploadCsvFile.bind(this, paramId)}/>
+                                    onChange={this.uploadFile.bind(this, paramId)}/>
                             )}
                         </Grid.Column>
                     </Grid>
@@ -360,6 +362,7 @@ class ParametersDialog extends React.Component {
                                 <PageParams key={idx} params={params} paramIds={childParamIds}
                                     csvColumnValues={this.props.csvColumnValues}
                                     onChange={this.props.onChange}
+                                    uploadFile={this.uploadFile}
                                 />
                             )}
                         </Grid>

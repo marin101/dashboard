@@ -17,6 +17,11 @@ function paramShallowCompare(nextProps, currProps) {
 }
 
 function FileInputParam(props) {
+    const uploadFile = event => {
+        event.preventDefault();
+        uploadCSVButtonRef.click();
+    };
+
     const {name, description, value=''} = props.parameter;
 
     let uploadCSVButtonRef;
@@ -25,16 +30,12 @@ function FileInputParam(props) {
         <Form.Field>
             <span style={{display: "none"}}>
                 <input type="file" ref={input => {uploadCSVButtonRef = input}}
-                    onChange={props.onChange}/>
+                    onChange={event => {props.onChange(event.target.files[0])}}/>
             </span>
 
-            <Button icon labelPosition="right" size="mini">
-                <Button.Content>
-                    {(value != '') ? value : description}
-                </Button.Content>
-
-                <Icon name="upload" color="teal"
-                    onClick={() => {uploadCSVButtonRef.click()}}/>
+            <Button icon labelPosition="right" size="mini" onClick={uploadFile}>
+                <Button.Content> {(value != '') ? value : description} </Button.Content>
+                <Icon name="upload" color="teal"/>
             </Button>
         </Form.Field>
     );
